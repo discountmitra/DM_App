@@ -6,7 +6,6 @@ import { useNavigation, useLocalSearchParams, useRouter } from "expo-router";
 import { restaurantData, Restaurant } from "../constants/restaurantData";
 import LikeButton from "../components/common/LikeButton";
 import { reviews } from "../constants/reviewsData";
-import { defaultGalleryImages, galleryTabs, GalleryImage } from "../constants/galleryData";
 import { getAvatarColor } from "../constants/reviewsData";
 import { defaultImage } from "../constants/assets";
 
@@ -15,7 +14,7 @@ export default function RestaurantDetailScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const headerImage = typeof params.image === 'string' ? (params.image as string) : '';
-  const [selectedGalleryTab, setSelectedGalleryTab] = useState('All');
+  
   const scrollY = useRef(new Animated.Value(0)).current;
   const [showStickyHeader, setShowStickyHeader] = useState(false);
   const [isViewerVisible, setIsViewerVisible] = useState(false);
@@ -23,6 +22,8 @@ export default function RestaurantDetailScreen() {
   const [viewerData, setViewerData] = useState<GalleryImage[]>([]);
   const [currentViewerIndex, setCurrentViewerIndex] = useState(0);
   const viewerListRef = useRef<FlatList<any>>(null);
+
+  type GalleryImage = { id: number; url: string };
 
   // Get restaurant data from params or use first restaurant as default
   const restaurant: Restaurant = useMemo(() => {
@@ -71,22 +72,18 @@ export default function RestaurantDetailScreen() {
   };
 
   const galleryImages: GalleryImage[] = useMemo(() => {
-    // Use provided gallery images for new restaurants, fallback to defaults
-    if ((restaurant.id === '4' || restaurant.id === '5') && Array.isArray(restaurant.photos) && restaurant.photos.length > 0) {
-      return restaurant.photos.map((url, index) => ({
-        id: index + 1,
-        url,
-        category: 'Food Images',
-        caption: undefined,
-      }));
+    const photos = Array.isArray(restaurant.photos) ? restaurant.photos : [];
+    if (photos.length > 0) {
+      return photos.map((url, index) => ({ id: index + 1, url }));
     }
+    // Fallback to header image if provided
+    if (headerImage && /^https?:\/\//.test(headerImage)) {
+      return [{ id: 1, url: headerImage }];
+    }
+    return [];
+  }, [restaurant.photos, headerImage]);
 
-    return defaultGalleryImages;
-  }, [restaurant.id, restaurant.photos]);
-
-  const filteredImages = selectedGalleryTab === 'All' 
-    ? galleryImages 
-    : galleryImages.filter(img => img.category === selectedGalleryTab);
+  const filteredImages = galleryImages;
 
   const openImageViewer = (indexInFiltered: number) => {
     const dataForViewer = filteredImages;
@@ -247,19 +244,6 @@ export default function RestaurantDetailScreen() {
           {/* Gallery Section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Gallery</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.galleryTabs}>
-              {galleryTabs.map((tab) => (
-                <TouchableOpacity
-                  key={tab}
-                  style={[styles.galleryTab, selectedGalleryTab === tab && styles.galleryTabActive]}
-                  onPress={() => setSelectedGalleryTab(tab)}
-                >
-                  <Text style={[styles.galleryTabText, selectedGalleryTab === tab && styles.galleryTabTextActive]}>
-                    {tab}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.galleryImages}>
               {filteredImages.map((image, idx) => (
                 <TouchableOpacity key={image.id} activeOpacity={0.8} onPress={() => openImageViewer(idx)}>
@@ -353,9 +337,7 @@ export default function RestaurantDetailScreen() {
               <Ionicons name="arrow-back" size={24} color="#fff" />
             </TouchableOpacity>
             <View style={styles.viewerTitleWrap}>
-              <Text style={styles.viewerTitle} numberOfLines={1}>
-                {viewerData[currentViewerIndex]?.category || 'Gallery'}
-              </Text>
+              <Text style={styles.viewerTitle} numberOfLines={1}>Gallery</Text>
               <Text style={styles.viewerCounter}>
                 {currentViewerIndex + 1} / {viewerData.length}
               </Text>
@@ -389,9 +371,7 @@ export default function RestaurantDetailScreen() {
           />
 
           <View style={styles.viewerCaptionWrap}>
-            <Text style={styles.viewerCaption} numberOfLines={1}>
-              {viewerData[currentViewerIndex]?.caption || 'Photo'}
-            </Text>
+              <Text style={styles.viewerCaption} numberOfLines={1}>Photo</Text>
           </View>
         </SafeAreaView>
       </Modal>

@@ -3,7 +3,7 @@ import Carousel from "react-native-reanimated-carousel";
 import { Colors, FontSizes, Spacing, FontWeights } from "../../theme";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { deals } from "../../constants/dealsData";
+import { deals } from "../../constants/assets";
 
 const { width } = Dimensions.get("window");
 

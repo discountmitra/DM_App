@@ -250,99 +250,11 @@ export default function EventDetailScreen() {
     normalUserOffer: (params.normalUserOffer as string) || "",
     vipUserOffer: (params.vipUserOffer as string) || "",
   }), [currentEvent, eventIdStr, params.normalUserOffer, params.vipUserOffer]);
-  const isBirthdayDecoration = event.name === 'Birthday Decoration' && event.category === 'Decoration';
-  const birthdayGalleryImages = [
-    'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/bdy/2.jpg',
-    'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/bdy/3.jpg',
-    'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/bdy/4.jpg',
-  ];
-  const isHaldiDecoration = event.name === 'Haldi Decoration' && event.category === 'Decoration';
-  const haldiGalleryImages = [
-    'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/haldi/1.jpg',
-    'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/haldi/2.webp',
-    'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/haldi/3.webp',
-  ];
-  const isWeddingDecoration = event.name === 'Wedding Decoration' && event.category === 'Decoration';
-  const weddingGalleryImages = [
-    'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/wedding/1.jpg',
-    'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/wedding/2.jpg',
-    'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/wedding/3.jpg',
-    'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/wedding/5.jpg',
-    'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/wedding/6.jpg',
-  ];
-  const isReceptionDecoration = event.name === 'Reception Decoration' && event.category === 'Decoration';
-  const receptionGalleryImages = [
-    'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/wedding/8.jpg',
-    'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/wedding/9.jpg',
-    'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/wedding/10.jpg',
-    'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/wedding/11.jpg',
-  ];
-  const isPremiumDecoration = event.name === 'Premium Decorations' && event.category === 'Decoration';
-  const premiumGalleryImages = [
-    'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/premium-decoration/1.jpg',
-    'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/premium-decoration/2.jpg',
-    'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/premium-decoration/3.jpg',
-    'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/premium-decoration/4.jpg',
-  ];
-  // New non-decoration galleries
-  const isTentHouse = event.name === 'Tent House Services' && event.category === 'Tent House';
-  const tentHouseImages = [
-    'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/tent-house/1.jpg',
-    'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/tent-house/2.jpg',
-    'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/tent-house/3.jpg',
-    'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/tent-house/4.jpg',
-  ];
-  const isDJServices = event.name === 'DJ Services' && event.category === 'DJ & Lighting';
-  const djServicesImages = [
-    'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/dj-lighting/dj/2.jpg',
-    'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/dj-lighting/dj/3.jpg',
-    'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/dj-lighting/dj/4.jpg',
-    'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/dj-lighting/dj/5.jpg',
-  ];
-  const isLightingServices = event.name === 'Lighting Services' && event.category === 'DJ & Lighting';
-  const lightingServicesImages = [
-    'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/dj-lighting/lighting/1.webp',
-    'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/dj-lighting/lighting/3.jpg',
-  ];
-  const isThadakalaPandiri = event.name === 'Thadakala Pandiri' && event.category === 'Thadakala Pandiri';
-  const thadakalaPandiriImages = [
-    'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/thadakala-pandiri/1.jpg',
-    'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/thadakala-pandiri/2.jpg',
-  ];
-  const isVinayakaCatering = event.name === 'Vinayaka Catering' && event.category === 'Catering';
-  const vinayakaCateringImages = [
-    'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/catering/3.jpg',
-    'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/catering/3.jpg',
-  ];
-  const isCateringStaff = event.name === 'Catering Staff Service' && event.category === 'Catering';
-  const cateringStaffImages = [
-    'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/catering/1.jpg',
-    'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/catering/2.jpg',
-    'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/catering/5.jpg',
-  ];
-  const isMehendiArt = event.name === 'Mehendi Art' && event.category === 'Mehendi Art';
-  const mehendiArtImages = [
-    'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/mehendi/1.jpg',
-    'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/mehendi/2.jpg',
-    'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/mehendi/3.jpg',
-    'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/mehendi/4.jpg',
-  ];
+  // Get gallery images from events data
+  const canonicalService = eventServices.find(s => s.name === event.name && s.category === event.category);
+  const serviceGallery = canonicalService?.gallery || [];
 
-  const currentGalleryImages = (
-    isBirthdayDecoration ? birthdayGalleryImages :
-    isHaldiDecoration ? haldiGalleryImages :
-    isWeddingDecoration ? weddingGalleryImages :
-    isReceptionDecoration ? receptionGalleryImages :
-    isPremiumDecoration ? premiumGalleryImages :
-    isTentHouse ? tentHouseImages :
-    isDJServices ? djServicesImages :
-    isLightingServices ? lightingServicesImages :
-    isThadakalaPandiri ? thadakalaPandiriImages :
-    isVinayakaCatering ? vinayakaCateringImages :
-    isCateringStaff ? cateringStaffImages :
-    isMehendiArt ? mehendiArtImages :
-    []
-  );
+  const currentGalleryImages = serviceGallery;
   const getItemLayout = (_: any, index: number) => {
     const width = Dimensions.get('window').width;
     return { length: width, offset: width * index, index };

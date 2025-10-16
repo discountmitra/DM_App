@@ -15,6 +15,7 @@ export interface EventService {
   normalUserOffer?: string;
   vipUserOffer?: string;
   phone?: string;
+  gallery?: string[];
 }
 
 export const eventCategories = [
@@ -48,6 +49,11 @@ export const eventData: EventService[] = [
     normalUserOffer: "Basic decoration: ₹1,499\nStandard theme: 15% off\nPhotography: ₹2,000\nCatering: 10% off",
     vipUserOffer: "Premium decoration: 30% off\nLuxury theme: 25% off\nProfessional photography: 20% off\nPremium catering: 20% off\nFree event coordination",
     phone: "8247556370",
+    gallery: [
+      'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/bdy/2.jpg',
+      'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/bdy/3.jpg',
+      'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/bdy/4.jpg',
+    ],
   },
   {
     id: "haldi-decoration",
@@ -64,6 +70,11 @@ export const eventData: EventService[] = [
     normalUserOffer: "Haldi decoration: ₹2,999\nTraditional theme: 15% off\nPhotography: ₹2,500\nCatering: 10% off",
     vipUserOffer: "Premium haldi decoration: 30% off\nLuxury traditional theme: 25% off\nProfessional photography: 20% off\nPremium catering: 20% off\nFree event coordination",
     phone: "8247556370",
+    gallery: [
+      'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/haldi/1.jpg',
+      'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/haldi/2.webp',
+      'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/haldi/3.webp',
+    ],
   },
   {
     id: "wedding-decoration",
@@ -78,6 +89,13 @@ export const eventData: EventService[] = [
     availability: "Available Now",
     image: "https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/wedding/4.jpg",
     phone: "8247556370",
+    gallery: [
+      'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/wedding/1.jpg',
+      'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/wedding/2.jpg',
+      'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/wedding/3.jpg',
+      'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/wedding/5.jpg',
+      'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/wedding/6.jpg',
+    ],
   },
   {
     id: "reception-decoration",
@@ -92,6 +110,12 @@ export const eventData: EventService[] = [
     availability: "Available Now",
     image: "https://images.unsplash.com/photo-1676734627786-a3662ff6a243?q=80&w=1171&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     phone: "8247556370",
+    gallery: [
+      'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/wedding/8.jpg',
+      'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/wedding/9.jpg',
+      'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/wedding/10.jpg',
+      'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/wedding/11.jpg',
+    ],
   },
   {
     id: "premium-decorations",
@@ -106,6 +130,12 @@ export const eventData: EventService[] = [
     availability: "Available Now",
     image: "https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/wedding/2.jpg",
     phone: "8247556370",
+    gallery: [
+      'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/premium-decoration/1.jpg',
+      'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/premium-decoration/2.jpg',
+      'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/premium-decoration/3.jpg',
+      'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/premium-decoration/4.jpg',
+    ],
   },
   // Tent House
   {
@@ -121,6 +151,12 @@ export const eventData: EventService[] = [
     availability: "Available Now",
     image: "https://images.unsplash.com/photo-1655409735952-cb5220efca54?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     phone: "8247556370",
+    gallery: [
+      'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/tent-house/1.jpg',
+      'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/tent-house/2.jpg',
+      'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/tent-house/3.jpg',
+      'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/tent-house/4.jpg',
+    ],
   },
   // DJ & Lighting
   {
@@ -136,6 +172,12 @@ export const eventData: EventService[] = [
     availability: "Available Now",
     image: "https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/dj-lighting/dj/1.jpeg",
     phone: "8247556370",
+    gallery: [
+      'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/dj-lighting/dj/2.jpg',
+      'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/dj-lighting/dj/3.jpg',
+      'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/dj-lighting/dj/4.jpg',
+      'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/dj-lighting/dj/5.jpg',
+    ],
   },
   {
     id: "lighting-services",
@@ -150,6 +192,10 @@ export const eventData: EventService[] = [
     availability: "Available Now",
     image: "https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/dj-lighting/lighting/2.jpg",
     phone: "8247556370",
+    gallery: [
+      'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/dj-lighting/lighting/1.webp',
+      'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/dj-lighting/lighting/3.jpg',
+    ],
   },
   // Thadakala Pandiri
   {
@@ -165,6 +211,10 @@ export const eventData: EventService[] = [
     availability: "Available Now",
     image: "https://5.imimg.com/data5/ANDROID/Default/2020/12/AK/ID/JL/31748740/product-jpeg-500x500.jpg",
     phone: "8247556370",
+    gallery: [
+      'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/thadakala-pandiri/1.jpg',
+      'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/decoration/thadakala-pandiri/2.jpg',
+    ],
   },
   // Function Halls
   {
@@ -271,6 +321,10 @@ export const eventData: EventService[] = [
     availability: "Available Now",
     image: "https://plus.unsplash.com/premium_photo-1686239357900-febfb958f33c?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NXx8Y2F0ZXJpbmd8ZW58MHx8MHx8fDA%3D",
     phone: "8247556370",
+    gallery: [
+      'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/catering/3.jpg',
+      'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/catering/3.jpg',
+    ],
   },
   {
     id: "catering-staff-service",
@@ -285,6 +339,11 @@ export const eventData: EventService[] = [
     availability: "Available Now",
     image: "https://images.unsplash.com/photo-1518619745898-93e765966dcd?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8Y2F0ZXJpbmd8ZW58MHx8MHx8fDA%3D",
     phone: "8247556370",
+    gallery: [
+      'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/catering/1.jpg',
+      'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/catering/2.jpg',
+      'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/catering/5.jpg',
+    ],
   },
   // Mehendi Art
   {
@@ -300,6 +359,12 @@ export const eventData: EventService[] = [
     availability: "Available Now",
     image: "https://images.unsplash.com/photo-1505932794465-147d1f1b2c97?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8bWVoZW5kaXxlbnwwfHwwfHx8MA%3D%3D",
     phone: "8247556370",
+    gallery: [
+      'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/mehendi/1.jpg',
+      'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/mehendi/2.jpg',
+      'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/mehendi/3.jpg',
+      'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/events-services/mehendi/4.jpg',
+    ],
   },
   // Photography (New)
   {

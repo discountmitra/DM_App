@@ -1,3 +1,5 @@
+
+
 export type MenuItem = {
   item: string;
   price: number | { half: number; full: number };
@@ -56,7 +58,13 @@ export const restaurantData: Restaurant[] = [
       cashback: "Up to 7% cashback",
       payment: "Online Payment"
     },
-    photos: ["supabase_bucket_url/food/icehouse.jpg"],
+    photos: [
+      'https://images.unsplash.com/photo-1683318528692-6cfe0ae76817?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8Zm9vZCUyMGFtYmllbmNlfGVufDB8fDB8fHww',
+      'https://images.unsplash.com/photo-1578231177134-f1bbe379b054?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1yZWxhdGVkfDV8fHxlbnwwfHx8fHw%3D',
+      'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8Zm9vZHxlbnwwfHwwfHx8MA%3D%3D',
+      'https://images.unsplash.com/photo-1701579231305-d84d8af9a3fd?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8YmlyeWFuaXxlbnwwfHwwfHx8MA%3D%3D',
+      'https://images.unsplash.com/photo-1515697320591-f3eb3566bc3c?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTF8fG1lbnV8ZW58MHx8MHx8fDA%3D',
+    ],
     rating: 4.5,
     reviews: 250,
     distance: "6km",
@@ -153,7 +161,13 @@ export const restaurantData: Restaurant[] = [
       cashback: "Up to 10% cashback",
       payment: "Online Payment"
     },
-    photos: ["supabase_bucket_url/food/shankarchat.jpg"],
+    photos: [
+      'https://images.unsplash.com/photo-1683318528692-6cfe0ae76817?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8Zm9vZCUyMGFtYmllbmNlfGVufDB8fDB8fHww',
+      'https://images.unsplash.com/photo-1578231177134-f1bbe379b054?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1yZWxhdGVkfDV8fHxlbnwwfHx8fHw%3D',
+      'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8Zm9vZHxlbnwwfHwwfHx8MA%3D%3D',
+      'https://images.unsplash.com/photo-1701579231305-d84d8af9a3fd?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8YmlyeWFuaXxlbnwwfHwwfHx8MA%3D%3D',
+      'https://images.unsplash.com/photo-1515697320591-f3eb3566bc3c?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTF8fG1lbnV8ZW58MHx8MHx8fDA%3D',
+    ],
     rating: 4.8,
     reviews: 180,
     distance: "9km",
@@ -182,7 +196,13 @@ export const restaurantData: Restaurant[] = [
       cashback: "Up to 10% cashback",
       payment: "Online Payment"
     },
-    photos: ["supabase_bucket_url/food/indianfastfood.jpg"],
+    photos: [
+      'https://images.unsplash.com/photo-1683318528692-6cfe0ae76817?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8Zm9vZCUyMGFtYmllbmNlfGVufDB8fDB8fHww',
+      'https://images.unsplash.com/photo-1578231177134-f1bbe379b054?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1yZWxhdGVkfDV8fHxlbnwwfHx8fHw%3D',
+      'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8Zm9vZHxlbnwwfHwwfHx8MA%3D%3D',
+      'https://images.unsplash.com/photo-1701579231305-d84d8af9a3fd?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8YmlyeWFuaXxlbnwwfHwwfHx8MA%3D%3D',
+      'https://images.unsplash.com/photo-1515697320591-f3eb3566bc3c?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTF8fG1lbnV8ZW58MHx8MHx8fDA%3D',
+    ],
     rating: 4.6,
     reviews: 320,
     distance: "9km",
