@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Modal, ActivityIndicator, TextInput, Alert } from "react-native";
 import { FontSizes, FontWeights } from "../theme";
 import { Ionicons } from "@expo/vector-icons";
@@ -59,12 +59,7 @@ export default function ShoppingDetailScreen() {
     return () => { alive = false; };
   }, [params.id]);
 
-  const item = useMemo<Item | undefined>(() => {
-    if (!shoppingItem) return undefined;
-    // Price: Normal ₹19, VIP ₹9 across shopping
-    const basePrice = userMode === 'vip' ? 9 : 19;
-    return { ...shoppingItem, payPrice: basePrice };
-  }, [shoppingItem, userMode]);
+  const item = shoppingItem || undefined;
 
   const extractDiscountSummary = (desc: string): string => {
     // Try to capture percentage and voucher mapping from description

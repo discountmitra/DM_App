@@ -26,12 +26,7 @@ const OfferCards: React.FC<OfferCardsProps> = ({ normalOffers, vipOffers, catego
         setLoading(true);
         setError(null);
 
-        // If specific offers are provided, use them
-        if (normalOffers && vipOffers && (normalOffers.length > 0 || vipOffers.length > 0)) {
-          setOffers({ normal: normalOffers, vip: vipOffers });
-          setLoading(false);
-          return;
-        }
+        // Always fetch from database; ignore prop fallbacks
 
         // Fetch from database
         const url = serviceType 
@@ -62,7 +57,7 @@ const OfferCards: React.FC<OfferCardsProps> = ({ normalOffers, vipOffers, catego
     };
 
     fetchOffers();
-  }, [category, serviceType, normalOffers, vipOffers]);
+  }, [category, serviceType]);
 
   useEffect(() => {
     Animated.loop(
@@ -197,6 +192,9 @@ const OfferCards: React.FC<OfferCardsProps> = ({ normalOffers, vipOffers, catego
     );
   }
 
+  const noNormal = offers.normal.length === 0;
+  const noVip = offers.vip.length === 0;
+
   return (
     <View style={styles.offersContainer}>
       {/* Normal User Section */}
@@ -216,12 +214,16 @@ const OfferCards: React.FC<OfferCardsProps> = ({ normalOffers, vipOffers, catego
           </View>
         </View>
         <View style={styles.offerCardBody}>
-          {offers.normal.map((offer, i) => (
-            <View key={i} style={styles.offerRow}>
-              <View style={[styles.normalBullet, { backgroundColor: textColor }]} />
-              <Text style={[styles.normalOfferText, { color: textColor }]}>{offer}</Text>
-            </View>
-          ))}
+          {noNormal ? (
+            <Text style={[styles.normalOfferText, { color: textColor }]}>No offers available</Text>
+          ) : (
+            offers.normal.map((offer, i) => (
+              <View key={i} style={styles.offerRow}>
+                <View style={[styles.normalBullet, { backgroundColor: textColor }]} />
+                <Text style={[styles.normalOfferText, { color: textColor }]}>{offer}</Text>
+              </View>
+            ))
+          )}
         </View>
       </LinearGradient>
 
@@ -249,12 +251,16 @@ const OfferCards: React.FC<OfferCardsProps> = ({ normalOffers, vipOffers, catego
           </View>
         </View>
           <View style={styles.offerCardBody}>
-          {offers.vip.map((offer, i) => (
-            <View key={i} style={styles.offerRow}>
-              <View style={styles.vipBullet} />
-              <Text style={styles.vipOfferText}>{offer}</Text>
-            </View>
-          ))}
+          {noVip ? (
+            <Text style={styles.vipOfferText}>No offers available</Text>
+          ) : (
+            offers.vip.map((offer, i) => (
+              <View key={i} style={styles.offerRow}>
+                <View style={styles.vipBullet} />
+                <Text style={styles.vipOfferText}>{offer}</Text>
+              </View>
+            ))
+          )}
           </View>
         </LinearGradient>
       </TouchableOpacity>

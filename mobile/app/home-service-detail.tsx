@@ -239,7 +239,7 @@ export default function HomeServiceDetailScreen() {
                   category: 'Home Services',
                   subcategory: service.category,
                   image: service.image,
-                  description: service.desc,
+                  description: service.description,
                   price: service.price,
                 }}
                 size={24}
@@ -963,8 +963,7 @@ const styles = StyleSheet.create({
   
   // Loading Modal - Simplified
   loadingModalCard: { backgroundColor: '#ffffff', borderRadius: 16, padding: 28, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12, elevation: 8 },
-  loadingContainer: { alignItems: 'center' },
-  loadingText: { fontSize: 16, fontWeight: '600', color: '#111827', marginTop: 12, textAlign: 'center' },
+
   loadingSubtext: { fontSize: 13, color: '#6b7280', marginTop: 6, textAlign: 'center' },
   
   // Success Modal - Simplified
@@ -1102,18 +1101,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f8fafc',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#6b7280',
-    fontWeight: '600',
-  },
+
   errorContainer: {
     flex: 1,
     justifyContent: 'center',

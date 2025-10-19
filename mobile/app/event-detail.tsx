@@ -75,14 +75,13 @@ export default function EventDetailScreen() {
   const [eventTime, setEventTime] = useState('');
   const [guestCount, setGuestCount] = useState('');
   const [budget, setBudget] = useState('');
-  const [selectedServiceName, setSelectedServiceName] = useState('');
+  // Service selection removed to match other categories
   const [specialRequirements, setSpecialRequirements] = useState('');
   const [venue, setVenue] = useState('');
-  const [errors, setErrors] = useState<{ name?: string; phone?: string; date?: string; time?: string; venue?: string; service?: string }>({});
+  const [errors, setErrors] = useState<{ name?: string; phone?: string; date?: string; time?: string; venue?: string }>({});
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
-  const [showServicePicker, setShowServicePicker] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -165,7 +164,6 @@ export default function EventDetailScreen() {
     const isDecoration = event.category === 'Decoration';
     const isInfra = event.category === 'Tent House' || event.category === 'DJ & Lighting' || event.category === 'Thadakala Pandiri';
     if ((isDecoration || isInfra) && !venue.trim()) newErrors.venue = 'Venue/Address is required';
-    if (isInfra && !selectedServiceName.trim()) newErrors.service = 'Please select a service';
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 
@@ -440,7 +438,8 @@ export default function EventDetailScreen() {
           </View>
         </View>
 
-        {/* Normal & VIP Offers */}
+        {/* Normal & VIP Offers - hidden for Chef and Photography */}
+        {!(event.category === 'Chef' || event.category === 'Photography') && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Offers & Benefits</Text>
           <OfferCards 
@@ -448,6 +447,7 @@ export default function EventDetailScreen() {
             serviceType={event.category}
           />
         </View>
+        )}
 
         {/* Gallery section (for supported event types) */}
         {currentGalleryImages.length > 0 && (
@@ -500,10 +500,10 @@ export default function EventDetailScreen() {
               <View style={styles.fieldRow}>
                 <Text style={styles.inputLabel}>Your Name</Text>
                 <View style={styles.inputWrapper}>
-                  <Ionicons name="person" size={18} color="#6b7280" style={styles.inputIcon} />
                   <TextInput
                     style={styles.inputControl}
                     placeholder="Enter your name"
+                    placeholderTextColor="#9ca3af"
                     value={customerName}
                     onChangeText={setCustomerName}
                   />
@@ -514,11 +514,11 @@ export default function EventDetailScreen() {
               <View style={styles.fieldRow}>
                 <Text style={styles.inputLabel}>Phone Number</Text>
                 <View style={styles.inputWrapper}>
-                  <Ionicons name="call" size={18} color="#6b7280" style={styles.inputIcon} />
                   <TextInput
                     style={styles.inputControl}
                     placeholder="10-digit phone"
                     keyboardType="phone-pad"
+                    placeholderTextColor="#9ca3af"
                     value={phoneNumber}
                     onChangeText={setPhoneNumber}
                     maxLength={10}
@@ -531,8 +531,7 @@ export default function EventDetailScreen() {
                 <View style={[styles.fieldRow, { flex: 1 }]}> 
                   <Text style={styles.inputLabel}>Event Date</Text>
                   <TouchableOpacity style={[styles.inputWrapper]} onPress={openDatePicker} activeOpacity={0.85}>
-                    <Ionicons name="calendar" size={18} color="#6b7280" style={styles.inputIcon} />
-                    <Text style={[styles.inputControl, { paddingTop: 14 }]}>{eventDate || 'Select a date'}</Text>
+                    <Text style={styles.inputControl}>{eventDate || 'Select a date'}</Text>
                   </TouchableOpacity>
                   {!!errors.date && <Text style={styles.errorText}>{errors.date}</Text>}
                 </View>
@@ -540,8 +539,7 @@ export default function EventDetailScreen() {
                 <View style={[styles.fieldRow, { flex: 1 }]}> 
                   <Text style={styles.inputLabel}>Event Time</Text>
                   <TouchableOpacity style={[styles.inputWrapper]} onPress={() => setShowTimePicker(true)} activeOpacity={0.85}>
-                    <Ionicons name="time" size={18} color="#6b7280" style={styles.inputIcon} />
-                    <Text style={[styles.inputControl, { paddingTop: 14 }]}>{eventTime || 'Select time'}</Text>
+                    <Text style={styles.inputControl}>{eventTime || 'Select time'}</Text>
                   </TouchableOpacity>
                   {!!errors.time && <Text style={styles.errorText}>{errors.time}</Text>}
                 </View>
@@ -550,10 +548,10 @@ export default function EventDetailScreen() {
               <View style={styles.fieldRow}>
                 <Text style={styles.inputLabel}>Venue / Address</Text>
                 <View style={styles.inputWrapper}>
-                  <Ionicons name="location" size={18} color="#6b7280" style={styles.inputIcon} />
                   <TextInput
                     style={styles.inputControl}
                     placeholder="Venue or address"
+                    placeholderTextColor="#9ca3af"
                     value={venue}
                     onChangeText={setVenue}
                   />
@@ -561,23 +559,15 @@ export default function EventDetailScreen() {
                 {!!errors.venue && <Text style={styles.errorText}>{errors.venue}</Text>}
               </View>
 
-              <View style={styles.fieldRow}>
-                <Text style={styles.inputLabel}>Service</Text>
-                <TouchableOpacity style={styles.inputWrapper} onPress={() => setShowServicePicker(true)} activeOpacity={0.85}>
-                  <Ionicons name="list" size={18} color="#6b7280" style={styles.inputIcon} />
-                  <Text style={[styles.inputControl, { paddingTop: 14 }]}>{selectedServiceName || 'Select service'}</Text>
-                  <Ionicons name="chevron-forward" size={18} color="#6b7280" style={{ marginRight: 10 }} />
-                </TouchableOpacity>
-                {!!errors.service && <Text style={styles.errorText}>{errors.service}</Text>}
-              </View>
+              {/* Service selection removed to simplify and match other categories */}
 
               <View style={styles.fieldRow}>
                 <Text style={styles.inputLabel}>Special Requirements</Text>
                 <View style={[styles.inputWrapper, { height: 110, alignItems: 'flex-start', paddingTop: 12 }]}> 
-                  <Ionicons name="chatbox-ellipses" size={18} color="#6b7280" style={[styles.inputIcon, { marginTop: 2 }]} />
                   <TextInput
-                    style={[styles.inputControl, { height: '100%' }]}
+                    style={[styles.inputControl, { height: '100%', textAlignVertical: 'top' }]}
                     placeholder="Tell us anything specific (optional)"
+                    placeholderTextColor="#9ca3af"
                     value={specialRequirements}
                     onChangeText={setSpecialRequirements}
                     multiline
@@ -590,7 +580,7 @@ export default function EventDetailScreen() {
                   start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
                   style={styles.primaryCta}>
                   <Ionicons name="calendar" size={18} color="#fff" />
-                  <Text style={styles.primaryCtaText}>Book Now</Text>
+                  <Text style={styles.primaryCtaText}>{userMode === 'vip' ? 'Book Now (Free)' : 'Book Now (₹9)'}</Text>
                 </LinearGradient>
               </TouchableOpacity>
           </View>
@@ -606,29 +596,29 @@ export default function EventDetailScreen() {
               <Text style={styles.loadingText}>Loading FAQs...</Text>
             </View>
           ) : (
-            <View style={styles.faqList}>
-              {faqData.map((faq, index) => (
-                <View key={index} style={styles.faqItem}>
-                  <TouchableOpacity 
-                    style={styles.faqHeader}
-                    onPress={() => toggleFAQ(index)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.faqQuestion}>{faq.question}</Text>
-                    <Ionicons 
-                      name={expandedFAQ === index ? "chevron-up" : "chevron-down"} 
-                      size={20} 
-                      color="#6b7280" 
-                    />
-                  </TouchableOpacity>
-                  {expandedFAQ === index && (
-                    <View style={styles.faqAnswerContainer}>
-                      <Text style={styles.faqAnswer}>{faq.answer}</Text>
-                    </View>
-                  )}
-                </View>
-              ))}
-            </View>
+          <View style={styles.faqList}>
+            {faqData.map((faq, index) => (
+              <View key={index} style={styles.faqItem}>
+                <TouchableOpacity 
+                  style={styles.faqHeader}
+                  onPress={() => toggleFAQ(index)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.faqQuestion}>{faq.question}</Text>
+                  <Ionicons 
+                    name={expandedFAQ === index ? "chevron-up" : "chevron-down"} 
+                    size={20} 
+                    color="#6b7280" 
+                  />
+                </TouchableOpacity>
+                {expandedFAQ === index && (
+                  <View style={styles.faqAnswerContainer}>
+                    <Text style={styles.faqAnswer}>{faq.answer}</Text>
+                  </View>
+                )}
+              </View>
+            ))}
+          </View>
           )}
         </View>
 
@@ -874,18 +864,7 @@ export default function EventDetailScreen() {
         </View>
       </Modal>
 
-      {/* Service Picker Modal */}
-      <Modal visible={showServicePicker} transparent animationType="fade" onRequestClose={() => setShowServicePicker(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.pickerCard}>
-            {[currentEvent.Name, 'Standard Package', 'Custom Requirement'].map(option => (
-              <TouchableOpacity key={option} style={styles.pickerItem} activeOpacity={0.85} onPress={() => { setSelectedServiceName(option); setErrors(prev => ({ ...prev, service: undefined })); setShowServicePicker(false); }}>
-                <Text style={styles.pickerText}>{option}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-      </Modal>
+      {/* Service picker removed */}
     </View>
   );
 }
@@ -1144,11 +1123,11 @@ const styles = StyleSheet.create({
   fieldRow: { marginBottom: 14 },
   inputWrapper: { 
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e5e7eb',
+    backgroundColor: '#f9fafb', borderWidth: 1, borderColor: '#e5e7eb',
     borderRadius: 12, height: 48
   },
   inputIcon: { marginLeft: 12, marginRight: 8 },
-  inputControl: { flex: 1, fontSize: 16, color: '#111827', paddingRight: 12 },
+  inputControl: { flex: 1, fontSize: 16, color: '#111827', paddingRight: 12, paddingLeft: 12 },
   inlineRow: { flexDirection: 'row' },
   primaryCta: {
     height: 52, borderRadius: 12, alignItems: 'center', justifyContent: 'center',
