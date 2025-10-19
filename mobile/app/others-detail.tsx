@@ -17,7 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRouter } from 'expo-router';
 import { useVip } from '../contexts/VipContext';
 import { LinearGradient } from 'expo-linear-gradient';
-import { othersFaq as faqData } from "../constants/faqData";
+// FAQ data now fetched from backend API
 
 export default function OthersDetailScreen() {
   const navigation = useNavigation();
@@ -330,27 +330,65 @@ export default function OthersDetailScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Frequently Asked Questions</Text>
             <View style={styles.faqList}>
-              {faqData.map((faq, index) => (
-                <View key={index} style={styles.faqItem}>
-                  <TouchableOpacity
-                    style={styles.faqHeader}
-                    onPress={() => toggleFAQ(index)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.faqQuestion}>{faq.question}</Text>
-                    <Ionicons
-                      name={expandedFAQ === index ? "chevron-up" : "chevron-down"}
-                      size={20}
-                      color="#6b7280"
-                    />
-                  </TouchableOpacity>
-                  {expandedFAQ === index && (
-                    <View style={styles.faqAnswerContainer}>
-                      <Text style={styles.faqAnswer}>{faq.answer}</Text>
-                    </View>
-                  )}
-                </View>
-              ))}
+              <View style={styles.faqItem}>
+                <TouchableOpacity
+                  style={styles.faqHeader}
+                  onPress={() => toggleFAQ(0)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.faqQuestion}>How does custom service request work?</Text>
+                  <Ionicons
+                    name={expandedFAQ === 0 ? "chevron-up" : "chevron-down"}
+                    size={20}
+                    color="#6b7280"
+                  />
+                </TouchableOpacity>
+                {expandedFAQ === 0 && (
+                  <View style={styles.faqAnswerContainer}>
+                    <Text style={styles.faqAnswer}>Simply fill out the form with your service requirements, and our team will find the best service providers for you within 24 hours.</Text>
+                  </View>
+                )}
+              </View>
+              
+              <View style={styles.faqItem}>
+                <TouchableOpacity
+                  style={styles.faqHeader}
+                  onPress={() => toggleFAQ(1)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.faqQuestion}>What types of services can I request?</Text>
+                  <Ionicons
+                    name={expandedFAQ === 1 ? "chevron-up" : "chevron-down"}
+                    size={20}
+                    color="#6b7280"
+                  />
+                </TouchableOpacity>
+                {expandedFAQ === 1 && (
+                  <View style={styles.faqAnswerContainer}>
+                    <Text style={styles.faqAnswer}>You can request any service that's not available in our main categories - from home cleaning to pet care, event planning to specialized repairs.</Text>
+                  </View>
+                )}
+              </View>
+              
+              <View style={styles.faqItem}>
+                <TouchableOpacity
+                  style={styles.faqHeader}
+                  onPress={() => toggleFAQ(2)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.faqQuestion}>How much does it cost?</Text>
+                  <Ionicons
+                    name={expandedFAQ === 2 ? "chevron-up" : "chevron-down"}
+                    size={20}
+                    color="#6b7280"
+                  />
+                </TouchableOpacity>
+                {expandedFAQ === 2 && (
+                  <View style={styles.faqAnswerContainer}>
+                    <Text style={styles.faqAnswer}>Normal users pay ₹9 per request, while VIP members get this service completely free as part of their subscription.</Text>
+                  </View>
+                )}
+              </View>
             </View>
           </View>
 

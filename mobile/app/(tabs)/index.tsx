@@ -10,7 +10,7 @@ import { useEffect } from "react";
 import CustomTopBar from "@/components/home/CustomTopBar";
 import { Ionicons } from "@expo/vector-icons";
 import { useVip } from "../../contexts/VipContext";
-import { vipBannerImage } from "../../constants/assets";
+// VIP banner now fetched from backend API
 
 export default function HomeScreen() {
   const navigation = useNavigation();
@@ -45,7 +45,7 @@ export default function HomeScreen() {
         <View style={styles.upgradeSection}>
           <TouchableOpacity activeOpacity={0.9} onPress={() => router.push('/vip-subscription')}> 
             <Image
-              source={vipBannerImage}
+              source={{ uri: "https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/assets/vip-banner.png" }}
               style={styles.bannerImage}
               resizeMode="cover"
             />

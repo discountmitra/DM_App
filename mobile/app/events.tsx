@@ -1,13 +1,32 @@
 import { useMemo, useRef, useState } from "react";
-import { View, Text, StyleSheet, TextInput, FlatList, Image, TouchableOpacity, ScrollView, NativeSyntheticEvent, NativeScrollEvent } from "react-native";
+import { View, Text, StyleSheet, TextInput, FlatList, Image, TouchableOpacity, NativeSyntheticEvent, NativeScrollEvent } from "react-native";
 import { SvgUri } from "react-native-svg";
-import { noDataSvgUrl } from "../constants/assets";
+// No data SVG URL for fallback
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, router, useLocalSearchParams } from "expo-router";
 import { useEffect } from "react";
 import LikeButton from "../components/common/LikeButton";
-import { eventData, eventCategories, EventCategoryKey } from "../constants/eventsData";
-import { defaultImage } from "../constants/assets";
+// Removed dependency on constants/eventsData; define minimal local types
+type EventCategoryKey = string;
+interface EventServiceType {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  icon: string;
+  price: string;
+  details?: string;
+  capacity?: string;
+  location?: string;
+  rating: number;
+  reviews: number;
+  availability: string;
+  image?: string;
+  normalUserOffer?: string;
+  vipUserOffer?: string;
+}
+// Default image URL for fallback
+import { BASE_URL } from "../constants/api";
 
 export default function EventsScreen() {
   const navigation = useNavigation();
@@ -16,15 +35,41 @@ export default function EventsScreen() {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<EventCategoryKey>("Decoration");
   const [query, setQuery] = useState("");
+  const [data, setData] = useState<EventServiceType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // compute categories from fetched data and honor preselect param
+  const categories = useMemo(() => Array.from(new Set(data.map(s => s.category))), [data]);
+  useEffect(() => {
+    const pre = params.preselect as string | undefined;
+    if (pre && categories.includes(pre)) {
+      setSelectedCategory(pre as EventCategoryKey);
+      return;
+    }
+    if (!pre && categories.length && !categories.includes(selectedCategory)) {
+      setSelectedCategory(categories[0] as EventCategoryKey);
+    }
+  }, [params.preselect, categories]);
 
   useEffect(() => {
-    const pre = (params.preselect as string) as EventCategoryKey | undefined;
-    if (pre && (eventCategories as string[]).includes(pre)) {
-      setSelectedCategory(pre as EventCategoryKey);
-    }
-  }, [params.preselect]);
-
-  const data = useMemo(() => eventData, []);
+    let isMounted = true;
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await fetch(`${BASE_URL}/events`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        if (isMounted) setData(json as EventServiceType[]);
+      } catch (e: any) {
+        if (isMounted) setError(e?.message || 'Failed to load');
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    })();
+    return () => { isMounted = false; };
+  }, []);
 
   const matchesOrdered = (q: string, ...fields: string[]) => {
     const queryStr = q.trim().toLowerCase();
@@ -87,10 +132,10 @@ export default function EventsScreen() {
         ListEmptyComponent={() => (
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIllustrationWrapper}>
-              <SvgUri uri={noDataSvgUrl} width="100%" height="100%" />
+              <SvgUri uri="https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/assets/no-data.svg" width="100%" height="100%" />
             </View>
-            <Text style={styles.emptyTitle}>No items found</Text>
-            <Text style={styles.emptySubtitle}>Try a different search query.</Text>
+            <Text style={styles.emptyTitle}>{loading ? 'Loading...' : error ? 'Failed to load' : 'No items found'}</Text>
+            <Text style={styles.emptySubtitle}>{loading ? 'Please wait' : error ? error : 'Try a different search query.'}</Text>
           </View>
         )}
         onScroll={(e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -104,16 +149,7 @@ export default function EventsScreen() {
             activeOpacity={0.9} 
             style={styles.card}
             onPress={() => {
-              if (item.category === 'Photography') {
-                router.push({ pathname: "/event-detail", params: { eventId: 'photography-service', image: item.image || "", normalUserOffer: item.normalUserOffer || "", vipUserOffer: item.vipUserOffer || "" } });
-                return;
-              }
-              if (item.category === 'Chef') {
-                router.push({ pathname: "/event-detail", params: { eventId: 'chef-service', image: item.image || "", normalUserOffer: item.normalUserOffer || "", vipUserOffer: item.vipUserOffer || "" } });
-                return;
-              }
-              const eventId = item.name.toLowerCase().replace(/\s+/g, '-');
-              router.push({ pathname: "/event-detail", params: { eventId, image: item.image || "", normalUserOffer: item.normalUserOffer || "", vipUserOffer: item.vipUserOffer || "" } });
+              router.push({ pathname: "/event-detail", params: { eventId: item.id, image: item.image || "", normalUserOffer: item.normalUserOffer || "", vipUserOffer: item.vipUserOffer || "" } });
             }}
           >
             <View style={{ position: "relative" }}>
@@ -121,7 +157,7 @@ export default function EventsScreen() {
                 source={
                   item.image && /^https?:\/\//.test(item.image)
                     ? { uri: item.image }
-                    : defaultImage
+                    : { uri: "https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/assets/logo.png" }
                 }
                 style={styles.image}
                 resizeMode="cover"

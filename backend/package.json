@@ -1,0 +1,52 @@
+{
+  "name": "discount-mitra-backend",
+  "version": "1.0.0",
+  "description": "Backend for Discount Mitra - Express + Sequelize + PostgreSQL",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "seed:one": "node scripts/seedOneEvent.js",
+    "seed:all": "node scripts/seedAllEvents.js",
+    "migrate:events": "node scripts/migrate_events_to_dm_app.js",
+    "seed:construction": "node scripts/seedConstruction.js",
+    "seed:healthcare": "node scripts/seedHealthcare.js",
+    "seed:home-services": "node scripts/seedHomeServices.js",
+    "seed:restaurants": "node scripts/seedRestaurants.js",
+    "seed:shopping": "node scripts/seedShopping.js",
+    "seed:salons": "node scripts/seedSalons.js",
+    "seed:faq": "node scripts/seedFaq.js",
+    "seed:assets": "node scripts/seedAssets.js",
+    "seed:offers": "node scripts/seedOffers.js"
+  },
+  "author": "Discount Mitra Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/discount-mitra.git"
+  },
+  "keywords": [
+    "nodejs",
+    "express",
+    "postgresql",
+    "sequelize",
+    "api",
+    "backend",
+    "discount-app"
+  ],
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^4.19.2",
+    "pg": "^8.12.0",
+    "pg-hstore": "^2.3.4",
+    "sequelize": "^6.37.3"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.3"
+  }
+}

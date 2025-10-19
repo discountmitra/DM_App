@@ -1,15 +1,43 @@
-import { View, Text, Image, StyleSheet, Dimensions, ImageSourcePropType, TouchableOpacity } from "react-native";
+import { View, Text, Image, StyleSheet, Dimensions, ImageSourcePropType, TouchableOpacity, ActivityIndicator } from "react-native";
 import Carousel from "react-native-reanimated-carousel";
 import { Colors, FontSizes, Spacing, FontWeights } from "../../theme";
 import { useRouter } from "expo-router";
-import { useState } from "react";
-import { deals } from "../../constants/assets";
+import { useState, useEffect } from "react";
+import { BASE_URL } from "../../constants/api";
 
 const { width } = Dimensions.get("window");
+
+type Deal = {
+  id: number;
+  image: string;
+  title?: string;
+  description?: string;
+};
 
 export default function DealCard() {
   const router = useRouter();
   const [activeIndex, setActiveIndex] = useState(0);
+  const [deals, setDeals] = useState<Deal[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(`${BASE_URL}/assets/deals`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        if (alive) setDeals(json);
+      } catch (e: any) {
+        // Silently handle deals loading errors - not critical for app functionality
+        if (alive) setDeals([]);
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
 
   const handleDealPress = (dealId: number) => {
     switch (dealId) {
@@ -57,6 +85,18 @@ export default function DealCard() {
         router.push("/food");
     }
   };
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.heading}>🔥 Hot Deals</Text>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="small" color="#3b82f6" />
+          <Text style={styles.loadingText}>Loading deals...</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -171,5 +211,16 @@ const styles = StyleSheet.create({
     width: 12,
     borderRadius: 6,
     backgroundColor: Colors.primary,
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+    gap: 8,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: '#6b7280',
   },
 });

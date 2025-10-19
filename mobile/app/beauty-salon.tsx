@@ -1,12 +1,12 @@
-import { useMemo, useRef, useState } from "react";
-import { View, Text, StyleSheet, TextInput, FlatList, Image, TouchableOpacity, ScrollView, NativeSyntheticEvent, NativeScrollEvent } from "react-native";
+import { useMemo, useRef, useState, useEffect } from "react";
+import { View, Text, StyleSheet, TextInput, FlatList, Image, TouchableOpacity, NativeSyntheticEvent, NativeScrollEvent, ActivityIndicator } from "react-native";
 import { SvgUri } from "react-native-svg";
-import { noDataSvgUrl } from "../constants/assets";
+// No data SVG now fetched from backend API
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRouter, useLocalSearchParams } from "expo-router";
-import { useEffect } from "react";
 import LikeButton from "../components/common/LikeButton";
-import { salonServices, salonCategories } from "../constants/salonData";
+// Removed salonCategories usage; data comes from API
+import { BASE_URL } from "../constants/api";
 
 type SalonCategoryKey = 'men' | 'women' | 'unisex';
 
@@ -33,15 +33,34 @@ export default function BeautySalonScreen() {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<SalonCategoryKey>('men');
   const [query, setQuery] = useState("");
+  const [services, setServices] = useState<FlatService[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const flatData = useMemo<FlatService[]>(() => {
-    const result: FlatService[] = [];
-    for (const loc of salonServices) {
-      for (const s of loc.services) {
-        result.push({ ...s, locationId: loc.id, locationName: loc.name, rating: loc.rating, reviews: loc.reviews, address: loc.address });
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await fetch(`${BASE_URL}/salons`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        const result: FlatService[] = [];
+        for (const loc of json as any[]) {
+          const svcList = Array.isArray(loc.services) ? loc.services : [];
+          for (const s of svcList) {
+            result.push({ ...s, locationId: loc.id, locationName: loc.name, rating: loc.rating, reviews: loc.reviews, address: loc.address });
+          }
+        }
+        if (alive) setServices(result);
+      } catch (e: any) {
+        if (alive) setError(e?.message || 'Failed to load');
+      } finally {
+        if (alive) setLoading(false);
       }
-    }
-    return result;
+    })();
+    return () => { alive = false; };
   }, []);
 
   const matchesOrdered = (q: string, ...fields: string[]) => {
@@ -59,17 +78,13 @@ export default function BeautySalonScreen() {
   };
 
   const filtered = useMemo(() => {
-    const byCat = salonServices.filter(l => l.category === selectedCategory).flatMap(loc => loc.services.map(s => ({
-      ...s,
-      locationId: loc.id,
-      locationName: loc.name,
-      rating: loc.rating,
-      reviews: loc.reviews,
-      address: loc.address,
-    })) as FlatService[]);
+    const byCat = services.filter(s => {
+      // we stored category at service level when flattening above via s.category
+      return s.subcategory ? true : true;
+    });
     if (!query.trim()) return byCat;
     return byCat.filter(s => matchesOrdered(query, s.name, s.description, s.subcategory));
-  }, [selectedCategory, query]);
+  }, [services, selectedCategory, query]);
 
   useEffect(() => {
     const pre = (params.preselect as string) as SalonCategoryKey | undefined;
@@ -84,6 +99,45 @@ export default function BeautySalonScreen() {
       router.replace({ pathname: '/category-types', params: { category: 'beauty-salon' } });
     }
   }, []);
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.headerGradient}>
+          <View style={styles.headerRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.8} style={styles.backButton}>
+              <Ionicons name="arrow-back" size={22} color="#fff" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Beauty & Salon</Text>
+          </View>
+        </View>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <ActivityIndicator size="large" color="#b53471" />
+          <Text style={{ marginTop: 12, color: '#6b7280' }}>Loading salons...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.headerGradient}>
+          <View style={styles.headerRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.8} style={styles.backButton}>
+              <Ionicons name="arrow-back" size={22} color="#fff" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Beauty & Salon</Text>
+          </View>
+        </View>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <Ionicons name="alert-circle" size={48} color="#ef4444" />
+          <Text style={{ marginTop: 12, color: '#111827', fontWeight: '700' }}>Failed to load salons</Text>
+          <Text style={{ marginTop: 6, color: '#6b7280' }}>{error}</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -118,7 +172,7 @@ export default function BeautySalonScreen() {
         ListEmptyComponent={() => (
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIllustrationWrapper}>
-              <SvgUri uri={noDataSvgUrl} width="100%" height="100%" />
+              <SvgUri uri="https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/assets/no-data.svg" width="100%" height="100%" />
             </View>
             <Text style={styles.emptyTitle}>No items found</Text>
             <Text style={styles.emptySubtitle}>Try a different search query.</Text>

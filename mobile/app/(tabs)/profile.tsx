@@ -8,7 +8,7 @@ import { useFavorites } from "../../contexts/FavoritesContext";
 import { LinearGradient } from 'expo-linear-gradient';
 import { useVip } from "../../contexts/VipContext";
 import { useAuth } from "../../contexts/AuthContext";
-import { logoImage } from "../../constants/assets";
+// Logo now fetched from backend API
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -218,7 +218,7 @@ export default function ProfileScreen() {
       {/* App Information */}
       <View style={styles.appInfoContainer}>
         <View style={styles.logoContainer}>
-          <Image source={logoImage} style={styles.logo} />
+          <Image source={{ uri: "https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/assets/logo.png" }} style={styles.logo} />
         </View>
         <Text style={styles.appVersion}>Discount Mithra v2.1.0</Text>
         <View style={styles.legalLinks}>

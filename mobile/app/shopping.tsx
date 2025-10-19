@@ -1,9 +1,17 @@
-import { useMemo, useRef, useState } from "react";
-import { View, Text, StyleSheet, TextInput, FlatList, Image, TouchableOpacity, NativeSyntheticEvent, NativeScrollEvent } from "react-native";
+import { useMemo, useRef, useState, useEffect } from "react";
+import { View, Text, StyleSheet, TextInput, FlatList, Image, TouchableOpacity, NativeSyntheticEvent, NativeScrollEvent, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRouter } from "expo-router";
-import { shoppingData } from "../constants/shoppingData";
-import { defaultImage } from "../constants/assets";
+// Default image URL for fallback
+import { BASE_URL } from "../constants/api";
+
+type ShoppingItem = {
+  id: string;
+  name: string;
+  specialist: string;
+  description: string;
+  image?: string;
+};
 
 export default function ShoppingScreen() {
   const navigation = useNavigation();
@@ -11,8 +19,30 @@ export default function ShoppingScreen() {
   const listRef = useRef<FlatList<any>>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [query, setQuery] = useState("");
+  const [shoppingItems, setShoppingItems] = useState<ShoppingItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const data = useMemo(() => shoppingData, []);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await fetch(`${BASE_URL}/shopping`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        if (alive) setShoppingItems(json as ShoppingItem[]);
+      } catch (e: any) {
+        if (alive) setError(e?.message || 'Failed to load');
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  const data = useMemo(() => shoppingItems, [shoppingItems]);
 
   const matchesOrdered = (q: string, ...fields: string[]) => {
     const queryStr = q.trim().toLowerCase();
@@ -32,6 +62,56 @@ export default function ShoppingScreen() {
     if (!query.trim()) return data;
     return data.filter(s => matchesOrdered(query, s.name, s.specialist, s.description));
   }, [data, query]);
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.headerGradient}>
+          <View style={styles.headerRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.8} style={styles.backButton}>
+              <Ionicons name="arrow-back" size={22} color="#fff" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Shopping</Text>
+          </View>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#3b82f6" />
+          <Text style={styles.loadingText}>Loading shopping items...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.headerGradient}>
+          <View style={styles.headerRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.8} style={styles.backButton}>
+              <Ionicons name="arrow-back" size={22} color="#fff" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Shopping</Text>
+          </View>
+        </View>
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle" size={48} color="#ef4444" />
+          <Text style={styles.errorText}>Failed to load shopping items</Text>
+          <Text style={styles.errorSubtext}>{error}</Text>
+          <TouchableOpacity 
+            style={styles.retryButton}
+            onPress={() => {
+              setError(null);
+              setLoading(true);
+              // Trigger re-fetch
+              setShoppingItems([]);
+            }}
+          >
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -80,7 +160,7 @@ export default function ShoppingScreen() {
             }}
           >
             <Image
-              source={item.image && /^https?:\/\//.test(item.image) ? { uri: item.image } : defaultImage}
+              source={item.image && /^https?:\/\//.test(item.image) ? { uri: item.image } : { uri: "https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/assets/logo.png" }}
               style={styles.image}
               resizeMode="cover"
             />
@@ -136,6 +216,13 @@ const styles = StyleSheet.create({
   ctaRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   ctaText: { color: "#6b7280", fontWeight: "700" },
   scrollTopFab: { position: "absolute", right: 16, bottom: 72, width: 44, height: 44, borderRadius: 22, backgroundColor: "#111827", alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOpacity: 0.12, shadowOffset: { width: 0, height: 6 }, shadowRadius: 12, elevation: 4 },
+  loadingContainer: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 24 },
+  loadingText: { marginTop: 16, fontSize: 16, color: "#6b7280", textAlign: "center" },
+  errorContainer: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 24 },
+  errorText: { marginTop: 16, fontSize: 18, fontWeight: "600", color: "#111827", textAlign: "center" },
+  errorSubtext: { marginTop: 8, fontSize: 14, color: "#6b7280", textAlign: "center" },
+  retryButton: { marginTop: 24, backgroundColor: "#3b82f6", paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 },
+  retryButtonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
 });
 
 

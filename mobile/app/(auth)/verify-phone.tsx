@@ -27,7 +27,10 @@ export default function VerifyPhoneScreen() {
       }
         verifyTimerRef.current = setTimeout(() => {
           // Simulate OTP verification and login
-          login("1234567890"); // You can get the actual phone number from route params
+          // In production, this would verify the OTP with a backend service
+          // For now, we'll use a placeholder phone number
+          const phoneNumber = "1234567890"; // This should come from route params or user input
+          login(phoneNumber);
           // Don't navigate here - let the auth state change handle navigation
           // Safety: reset verifying after login
           setTimeout(() => setIsVerifying(false), 1200);

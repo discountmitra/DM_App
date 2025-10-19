@@ -1,13 +1,28 @@
-import { useMemo, useRef, useState } from "react";
-import { View, Text, StyleSheet, TextInput, FlatList, Image, TouchableOpacity, ScrollView, NativeSyntheticEvent, NativeScrollEvent } from "react-native";
+import { useMemo, useRef, useState, useEffect } from "react";
+import { View, Text, StyleSheet, TextInput, FlatList, Image, TouchableOpacity, NativeSyntheticEvent, NativeScrollEvent } from "react-native";
 import { SvgUri } from "react-native-svg";
-import { noDataSvgUrl } from "../constants/assets";
+// Assets now fetched from backend API
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, router, useLocalSearchParams } from "expo-router";
-import { useEffect } from "react";
 import LikeButton from "../components/common/LikeButton";
-import { constructionData, constructionCategories, ConstructionCategoryKey } from "../constants/constructionData";
-import { defaultImage } from "../constants/assets";
+import { BASE_URL } from "../constants/api";
+type ConstructionCategoryKey = string;
+type ConstructionItem = {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  icon: string;
+  price?: string;
+  details?: string;
+  rating: number;
+  reviews: number;
+  availability: string;
+  image?: string;
+  normalUserOffer?: string;
+  vipUserOffer?: string;
+  phone?: string;
+};
 
 export default function ConstructionScreen() {
   const navigation = useNavigation();
@@ -17,14 +32,39 @@ export default function ConstructionScreen() {
   const [selectedCategory, setSelectedCategory] = useState<ConstructionCategoryKey>("Cement");
   const [query, setQuery] = useState("");
 
+  const [data, setData] = useState<ConstructionItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const categories = useMemo(() => Array.from(new Set(data.map(s => s.category))), [data]);
   useEffect(() => {
-    const pre = (params.preselect as string) as ConstructionCategoryKey | undefined;
-    if (pre && (constructionCategories as string[]).includes(pre)) {
+    const pre = params.preselect as string | undefined;
+    if (pre && categories.includes(pre)) {
       setSelectedCategory(pre as ConstructionCategoryKey);
+      return;
     }
-  }, [params.preselect]);
+    if (!pre && categories.length && !categories.includes(selectedCategory)) {
+      setSelectedCategory(categories[0] as ConstructionCategoryKey);
+    }
+  }, [params.preselect, categories]);
 
-  const data = useMemo(() => constructionData, []);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await fetch(`${BASE_URL}/construction`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        if (alive) setData(json as ConstructionItem[]);
+      } catch (e: any) {
+        if (alive) setError(e?.message || 'Failed to load');
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
 
   const matchesOrdered = (q: string, ...fields: string[]) => {
     const queryStr = q.trim().toLowerCase();
@@ -86,10 +126,10 @@ export default function ConstructionScreen() {
         ListEmptyComponent={() => (
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIllustrationWrapper}>
-              <SvgUri uri={noDataSvgUrl} width="100%" height="100%" />
+              <SvgUri uri="https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/assets/no-data.svg" width="100%" height="100%" />
             </View>
-            <Text style={styles.emptyTitle}>No items found</Text>
-            <Text style={styles.emptySubtitle}>Try a different search query.</Text>
+            <Text style={styles.emptyTitle}>{loading ? 'Loading...' : error ? 'Failed to load' : 'No items found'}</Text>
+            <Text style={styles.emptySubtitle}>{loading ? 'Please wait' : error ? error : 'Try a different search query.'}</Text>
           </View>
         )}
         onScroll={(e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -101,8 +141,7 @@ export default function ConstructionScreen() {
         renderItem={({ item }) => (
           <TouchableOpacity activeOpacity={0.9} style={styles.card}
             onPress={() => {
-              const constructionId = item.name.toLowerCase().replace(/\s+/g, '-');
-              router.push({ pathname: "/construction-detail", params: { constructionId, image: item.image || "", normalUserOffer: item.normalUserOffer || "", vipUserOffer: item.vipUserOffer || "" } });
+              router.push({ pathname: "/construction-detail", params: { constructionId: item.id, image: item.image || "", normalUserOffer: item.normalUserOffer || "", vipUserOffer: item.vipUserOffer || "" } });
             }}
           >
             <View style={{ position: "relative" }}>
@@ -110,7 +149,7 @@ export default function ConstructionScreen() {
                 source={
                   item.image && /^https?:\/\//.test(item.image)
                     ? { uri: item.image }
-                    : defaultImage
+                    : { uri: "https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/assets/logo.png" }
                 }
                 style={styles.image}
                 resizeMode="cover"

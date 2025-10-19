@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Modal, ActivityIndicator, TextInput, Alert } from "react-native";
 import { FontSizes, FontWeights } from "../theme";
 import { Ionicons } from "@expo/vector-icons";
@@ -6,7 +6,8 @@ import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import LikeButton from "../components/common/LikeButton";
 import { useVip } from "../contexts/VipContext";
 import PayBillCard from "../components/common/PayBillCard";
-import { defaultImage } from "../constants/assets";
+// Default image URL for fallback
+import { BASE_URL } from "../constants/api";
 
 type Item = {
   id: string;
@@ -17,43 +18,13 @@ type Item = {
   payPrice: number; // price to buy coupon
 };
 
-const RAW: Array<Omit<Item, 'payPrice'>> = [
-  {
-    id: "vishala-shopping-mall",
-    name: "Vishala Shopping Mall",
-    specialist: "Men, Women & Kids Shopping mall",
-    description: "Normal: 5% off • VIP: 10% off (Pay ₹19 Get Discount Coupon)",
-    image: "https://plus.unsplash.com/premium_photo-1683121817275-85d1dcf9e4c4?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NXx8c2hvcHBpbmclMjBtYWxsfGVufDB8fDB8fHww",
-  },
-  {
-    id: "cmr-shopping-mall",
-    name: "CMR Shopping Mall",
-    specialist: "Men, Women & Kids Shopping mall",
-    description: "Normal: 5% off • VIP: 10% off (Pay ₹9 Get Discount Coupon)",
-    image: "https://img.staticmb.com/mbcontent/images/crop/uploads/2024/11/cmr-shopping-mall_0_1200.jpg.webp",
-  },
-  {
-    id: "adven-mens-store",
-    name: "Adven Mens Store sircilla",
-    specialist: "Men Shopping Center",
-    description: "Normal: 7% off • VIP: 15% off (Pay ₹19 Get Discount Coupon)",
-    image: "https://images.unsplash.com/photo-1559204260-9d9f024ab30a?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8OHx8bWVucyUyMHN0b3JlfGVufDB8fDB8fHww",
-  },
-  {
-    id: "trends",
-    name: "Trends",
-    specialist: "Store",
-    description: "Normal: 3% off • VIP: 5% off (Pay ₹9 Get Discount Coupon)",
-    image: "https://www.legalmantra.net/admin/assets/upload_image/blog/Trends.jpg",
-  },
-  {
-    id: "jockey-india",
-    name: "Jockey India",
-    specialist: "https://www.jockey.in/",
-    description: "Normal: 6% off • VIP: 12% off (Pay ₹19 Get Discount Coupon)",
-    image: "https://www.infinitimall.com/wp-content/uploads/2023/09/Jockey-Malad-Infinti-Mall-1.jpg",
-  },
-];
+type ShoppingItem = {
+  id: string;
+  name: string;
+  specialist: string;
+  description: string;
+  image?: string;
+};
 
 export default function ShoppingDetailScreen() {
   const params = useLocalSearchParams();
@@ -65,13 +36,35 @@ export default function ShoppingDetailScreen() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [billAmount, setBillAmount] = useState("");
   const [showStickyHeader, setShowStickyHeader] = useState(false);
+  const [shoppingItem, setShoppingItem] = useState<ShoppingItem | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await fetch(`${BASE_URL}/shopping/${params.id}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        if (alive) setShoppingItem(json as ShoppingItem);
+      } catch (e: any) {
+        if (alive) setError(e?.message || 'Failed to load');
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, [params.id]);
+
   const item = useMemo<Item | undefined>(() => {
-    const base = RAW.find(r => r.id === params.id);
-    if (!base) return undefined;
+    if (!shoppingItem) return undefined;
     // Price: Normal ₹19, VIP ₹9 across shopping
     const basePrice = userMode === 'vip' ? 9 : 19;
-    return { ...base, payPrice: basePrice };
-  }, [params.id, userMode]);
+    return { ...shoppingItem, payPrice: basePrice };
+  }, [shoppingItem, userMode]);
 
   const extractDiscountSummary = (desc: string): string => {
     // Try to capture percentage and voucher mapping from description
@@ -104,6 +97,35 @@ export default function ShoppingDetailScreen() {
   const finalAmount = Math.max(0, billNum - discountValue);
 
   // Pay flow handled via confirm -> loading -> success modals
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { alignItems: 'center', justifyContent: 'center' }]}>
+        <ActivityIndicator size="large" color="#3b82f6" />
+        <Text style={{ marginTop: 16, fontWeight: '700', color: '#111827' }}>Loading shopping item...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, { alignItems: 'center', justifyContent: 'center' }]}>
+        <Ionicons name="alert-circle" size={48} color="#ef4444" />
+        <Text style={{ marginTop: 16, fontWeight: '700', color: '#111827' }}>Failed to load shopping item</Text>
+        <Text style={{ marginTop: 8, color: '#6b7280', textAlign: 'center' }}>{error}</Text>
+        <TouchableOpacity 
+          onPress={() => {
+            setError(null);
+            setLoading(true);
+            setShoppingItem(null);
+          }} 
+          style={{ marginTop: 16, backgroundColor: '#3b82f6', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 }}
+        >
+          <Text style={{ color: '#fff', fontWeight: '700' }}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   if (!item) {
     return (
@@ -147,7 +169,7 @@ export default function ShoppingDetailScreen() {
       }} scrollEventThrottle={16}>
         {/* Hero Section with overlay and actions (aligned with other detail pages) */}
         <View style={styles.hero}>
-          <Image source={item.image && /^https?:\/\//.test(item.image) ? { uri: item.image } : defaultImage} style={styles.heroImage} />
+          <Image source={item.image && /^https?:\/\//.test(item.image) ? { uri: item.image } : { uri: "https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/assets/logo.png" }} style={styles.heroImage} />
           <View style={styles.heroOverlay} />
           <View style={styles.heroTop}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.heroBack}>

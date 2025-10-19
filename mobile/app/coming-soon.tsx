@@ -1,11 +1,30 @@
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { useState, useEffect } from "react";
 import { useNavigation } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { SvgUri } from "react-native-svg";
-import { soonSvgUrl } from "../constants/assets";
+import { BASE_URL } from "../constants/api";
 
 function ComingSoonScreen() {
   const navigation = useNavigation();
+  const [soonSvgUrl, setSoonSvgUrl] = useState<string>("");
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/assets/type/soon_svg`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        if (alive && json.length > 0) setSoonSvgUrl(json[0].image);
+      } catch (e: any) {
+        // Fallback to default SVG if loading fails
+        if (alive) setSoonSvgUrl("https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/assets/soon.svg");
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -17,7 +36,7 @@ function ComingSoonScreen() {
 
       <View style={styles.content}>
         <View style={styles.illustrationWrapper}>
-          <SvgUri uri={soonSvgUrl} width="100%" height="100%" />
+          {soonSvgUrl ? <SvgUri uri={soonSvgUrl} width="100%" height="100%" /> : null}
         </View>
         <Text style={styles.title}>We're preparing something great</Text>
         <Text style={styles.subtitle}>This will be available soon. Stay tuned!</Text>

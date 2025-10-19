@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, TextInput, Modal, ActivityIndicator, Animated, TouchableWithoutFeedback } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter, useNavigation } from "expo-router";
@@ -6,26 +6,76 @@ import { useVip } from "../contexts/VipContext";
 import { LinearGradient } from "expo-linear-gradient";
 import LikeButton from "../components/common/LikeButton";
 import OfferCards from "../components/common/OfferCards";
-import { categoryOffers } from "../constants/offerData";
-import { defaultImage } from "../constants/assets";
-import { homeServiceFaq as faqData } from "../constants/faqData";
+// categoryOffers removed - using database data
+// Default image URL for fallback
+// FAQ data now fetched from backend API
+import { BASE_URL } from "../constants/api";
+
+type HomeService = {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  icon: string;
+  price: string;
+  discount: string;
+  rating: number;
+  reviews: number;
+  availability: string;
+  image?: string;
+  normalUserOffer?: string;
+  vipUserOffer?: string;
+};
 
 export default function HomeServiceDetailScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
   const navigation = useNavigation();
   const { userMode, isVip } = useVip();
-  const service = useMemo(() => ({
-    id: (params.id as string) || "",
-    name: (params.name as string) || "Service",
-    desc: (params.desc as string) || "",
-    category: (params.category as string) || "",
-    price: (params.price as string) || "",
-    discount: (params.discount as string) || "",
-    image: typeof params.image === 'string' ? (params.image as string) : "",
-    normalUserOffer: (params.normalUserOffer as string) || "",
-    vipUserOffer: (params.vipUserOffer as string) || "",
-  }), [params]);
+  const [service, setService] = useState<HomeService | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [faqData, setFaqData] = useState<Array<{question: string; answer: string}>>([]);
+  const [faqLoading, setFaqLoading] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await fetch(`${BASE_URL}/home-services/${params.id}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        if (alive) setService(json as HomeService);
+      } catch (e: any) {
+        if (alive) setError(e?.message || 'Failed to load');
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, [params.id]);
+
+  // Fetch FAQ data
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        setFaqLoading(true);
+        const res = await fetch(`${BASE_URL}/faq/home-services`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        if (alive) setFaqData(json);
+      } catch (e: any) {
+        // Silently handle FAQ loading errors - not critical for app functionality
+        if (alive) setFaqData([]);
+      } finally {
+        if (alive) setFaqLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
 
   const [userName, setUserName] = useState("");
   const [userPhone, setUserPhone] = useState("");
@@ -42,11 +92,6 @@ export default function HomeServiceDetailScreen() {
   const [showPaymentPopup, setShowPaymentPopup] = useState(false);
   const [popupAnim] = useState(new Animated.Value(0));
 
-  // Function to convert individual offers to array format
-  const convertOffersToArray = (offerText: string) => {
-    if (!offerText) return [];
-    return offerText.split('\n').filter(line => line.trim() !== '');
-  };
 
 
 
@@ -113,6 +158,32 @@ export default function HomeServiceDetailScreen() {
     setShowStickyHeader(offsetY > 100);
   };
 
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#3b82f6" />
+          <Text style={styles.loadingText}>Loading service details...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (error || !service) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle" size={48} color="#ef4444" />
+          <Text style={styles.errorTitle}>Failed to load</Text>
+          <Text style={styles.errorSubtitle}>{error || 'Service not found'}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={() => router.back()}>
+            <Text style={styles.retryButtonText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       {/* Sticky Header */}
@@ -145,7 +216,7 @@ export default function HomeServiceDetailScreen() {
         {/* Hero Section with Background */}
         <View style={styles.heroSection}>
           <Image 
-            source={service.image && /^https?:\/\//.test(service.image) ? { uri: service.image } : defaultImage} 
+            source={service.image && /^https?:\/\//.test(service.image) ? { uri: service.image } : { uri: "https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/assets/logo.png" }} 
             style={styles.heroBackgroundImage}
             resizeMode="cover"
           />
@@ -187,7 +258,7 @@ export default function HomeServiceDetailScreen() {
                 <Ionicons name="construct" size={24} color="#3b82f6" />
               </View>
               <View style={styles.serviceInfoMain}>
-              <Text style={styles.serviceName}>{service.name}</Text>
+                <Text style={styles.serviceName}>{service.name}</Text>
                 <View style={styles.serviceLocation}>
                   <Ionicons name="location" size={12} color="#ef4444" />
                   <Text style={styles.serviceLocationText}>Home Services</Text>
@@ -236,8 +307,6 @@ export default function HomeServiceDetailScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Offers & Benefits</Text>
           <OfferCards 
-            normalOffers={service.normalUserOffer ? convertOffersToArray(service.normalUserOffer) : undefined}
-            vipOffers={service.vipUserOffer ? convertOffersToArray(service.vipUserOffer) : undefined}
             category="home-service"
             serviceType={service.category}
           />
@@ -284,29 +353,36 @@ export default function HomeServiceDetailScreen() {
 
                 <View style={styles.section}>
           <Text style={styles.sectionTitle}>Frequently Asked Questions</Text>
-          <View style={styles.faqList}>
-            {faqData.map((faq, index) => (
-              <View key={index} style={styles.faqItem}>
-                <TouchableOpacity 
-                  style={styles.faqHeader}
-                  onPress={() => toggleFAQ(index)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.faqQuestion}>{faq.question}</Text>
-                  <Ionicons 
-                    name={expandedFAQ === index ? "chevron-up" : "chevron-down"} 
-                    size={20} 
-                    color="#6b7280" 
-                  />
-                </TouchableOpacity>
-                {expandedFAQ === index && (
-                  <View style={styles.faqAnswerContainer}>
-                    <Text style={styles.faqAnswer}>{faq.answer}</Text>
-                  </View>
-                )}
-              </View>
-            ))}
-          </View>
+          {faqLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color="#3b82f6" />
+              <Text style={styles.loadingText}>Loading FAQs...</Text>
+            </View>
+          ) : (
+            <View style={styles.faqList}>
+              {faqData.map((faq, index) => (
+                <View key={index} style={styles.faqItem}>
+                  <TouchableOpacity 
+                    style={styles.faqHeader}
+                    onPress={() => toggleFAQ(index)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.faqQuestion}>{faq.question}</Text>
+                    <Ionicons 
+                      name={expandedFAQ === index ? "chevron-up" : "chevron-down"} 
+                      size={20} 
+                      color="#6b7280" 
+                    />
+                  </TouchableOpacity>
+                  {expandedFAQ === index && (
+                    <View style={styles.faqAnswerContainer}>
+                      <Text style={styles.faqAnswer}>{faq.answer}</Text>
+                    </View>
+                  )}
+                </View>
+              ))}
+            </View>
+          )}
         </View>
 
         <View style={{ height: 24 }} />
@@ -1025,6 +1101,60 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '700',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#6b7280',
+    fontWeight: '600',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    padding: 24,
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  errorSubtitle: {
+    fontSize: 14,
+    color: '#6b7280',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  retryButton: {
+    backgroundColor: '#3b82f6',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+    gap: 8,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: '#6b7280',
   },
 });
 

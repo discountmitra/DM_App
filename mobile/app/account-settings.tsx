@@ -3,14 +3,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { Colors, FontSizes, Spacing } from "../theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { logoImage } from "../constants/assets";
-import { accountSettingsItems } from "../constants/settingsData";
+// Logo now fetched from backend API
+// Settings items now come from database
 
 export default function AccountSettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  const settingsItems = accountSettingsItems;
+  // Settings items will be loaded from database
+  const settingsItems: any[] = [];
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>

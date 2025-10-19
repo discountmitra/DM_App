@@ -5,7 +5,7 @@ import { useNavigation, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFavorites } from "../contexts/FavoritesContext";
 import LikeButton from "../components/common/LikeButton";
-import { defaultImage } from "../constants/assets";
+// Default image URL for fallback
 
 type SortOption = 'all' | 'Food' | 'Healthcare' | 'Home Services' | 'Beauty' | 'Events' | 'Construction' | 'Shopping';
 
@@ -88,7 +88,7 @@ export default function FavoritesScreen() {
           source={
             item.image && /^https?:\/\//.test(item.image)
               ? { uri: item.image }
-              : defaultImage
+              : { uri: "https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/assets/logo.png" }
           }
           style={styles.cardImage}
           resizeMode="cover"

@@ -13,14 +13,14 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter, useNavigation } from "expo-router";
-import { getHospitalById } from "../constants/hospitalData";
-import { defaultImage } from "../constants/assets";
+import { BASE_URL } from "../constants/api";
+// Default image URL for fallback
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useVip } from "../contexts/VipContext";
 import LikeButton from "../components/common/LikeButton";
 import { LinearGradient } from 'expo-linear-gradient';
 import OfferCards from "../components/common/OfferCards";
-import { hospitalFaq as faqData } from "../constants/faqData";
+// FAQ data now fetched from backend API
 
 export default function HospitalDetailScreen() {
   const params = useLocalSearchParams();
@@ -29,6 +29,9 @@ export default function HospitalDetailScreen() {
   const { userMode, isVip } = useVip();
   const hospitalId = (params.id as string) || "";
   const headerImage = typeof params.image === 'string' ? (params.image as string) : "";
+  const [hospital, setHospital] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [patientName, setPatientName] = useState("");
   const [patientPhone, setPatientPhone] = useState("");
   const [patientAge, setPatientAge] = useState("");
@@ -49,66 +52,78 @@ export default function HospitalDetailScreen() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showStickyHeader, setShowStickyHeader] = useState(false);
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
-  // Removed payment popup flow (₹9). Booking is now free in-app; OP fee is payable at hospital as per mode.
-  
-  // Shimmer animation for VIP card
-  const shimmerAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(shimmerAnim, { toValue: 1, duration: 1800, useNativeDriver: true }),
-        Animated.timing(shimmerAnim, { toValue: 0, duration: 0, useNativeDriver: true }),
-      ])
-    ).start();
-  }, [shimmerAnim]);
-
-
+  const [faqData, setFaqData] = useState<Array<{question: string; answer: string}>>([]);
+  const [faqLoading, setFaqLoading] = useState(true);
 
   const toggleFAQ = (index: number) => {
     setExpandedFAQ(expandedFAQ === index ? null : index);
   };
 
-  const hospital = useMemo(() => getHospitalById(hospitalId), [hospitalId]);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await fetch(`${BASE_URL}/healthcare/${encodeURIComponent(String(hospitalId))}`);
+        if (res.status === 404) {
+          // Fallback: fetch all and pick by id (handles any PK mismatches)
+          const listRes = await fetch(`${BASE_URL}/healthcare`);
+          if (!listRes.ok) throw new Error(`HTTP ${listRes.status}`);
+          const list = await listRes.json();
+          const found = Array.isArray(list) ? list.find((h: any) => String(h.id) === String(hospitalId)) : null;
+          if (!found) throw new Error('Not found');
+          if (alive) setHospital(found);
+        } else if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        } else {
+          const json = await res.json();
+          if (alive) setHospital(json);
+        }
+      } catch (e: any) {
+        if (alive) setError(e?.message || 'Failed to load');
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, [hospitalId]);
+
+  // Fetch FAQ data
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        setFaqLoading(true);
+        const res = await fetch(`${BASE_URL}/faq/healthcare`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        if (alive) setFaqData(json);
+      } catch (e: any) {
+        console.error('Failed to load FAQ:', e);
+        if (alive) setFaqData([]);
+      } finally {
+        if (alive) setFaqLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
+
   const isPharmacy = hospital?.category === 'Pharmacy';
   const isYaminiVeterinary = hospital?.id === 'yamini-veterinary';
   const [petType, setPetType] = useState("");
   
-  // Use hospital's first photo if no headerImage is provided
-  const displayImage = headerImage || (hospital?.photos && hospital.photos.length > 0 ? hospital.photos[0] : "");
+  const displayImage = headerImage || (hospital?.image || "");
 
-  // Function to summarize offer text
-  const summarizeOffer = (offerText: string) => {
-    const lines = offerText.split('\n');
-    return lines.map(line => {
-      const trimmed = line.trim();
-      // Shorten common patterns
-      if (trimmed.includes('Book OP for ₹') && trimmed.includes('(No discount in OP)')) {
-        const price = trimmed.match(/₹(\d+)/)?.[1];
-        return `OP: ₹${price}`;
-      }
-      if (trimmed.includes('OP: ₹') && trimmed.includes('OFF - Pay only')) {
-        const finalPrice = trimmed.match(/Pay only (\d+)/)?.[1];
-        return `OP: ₹${finalPrice}`;
-      }
-      if (trimmed.includes('Get') && trimmed.includes('Discount on Lab & IP Services')) {
-        const discount = trimmed.match(/(\d+)%/)?.[1];
-        return `Lab & IP: ${discount}% off`;
-      }
-      if (trimmed.includes('Plus') && trimmed.includes('Discount on Pharmacy')) {
-        const discount = trimmed.match(/(\d+)%/)?.[1];
-        return `Pharmacy: ${discount}% off`;
-      }
-      if (trimmed.includes('Discount on Spectacles')) {
-        const discount = trimmed.match(/(\d+)%/)?.[1];
-        return `Spectacles: ${discount}% off`;
-      }
-      // Keep original if no pattern matches
-      return trimmed;
-    });
-  };
+  if (loading) {
+    return (
+      <View style={[styles.container, { alignItems: 'center', justifyContent: 'center' }]}>
+        <ActivityIndicator color="#ef4444" />
+      </View>
+    );
+  }
 
-  if (!hospital) {
+  if (error || !hospital) {
     return (
       <View
         style={[
@@ -116,9 +131,7 @@ export default function HospitalDetailScreen() {
           { alignItems: "center", justifyContent: "center" },
         ]}
       >
-        <Text style={{ color: "#111827", fontWeight: "700", fontSize: 16 }}>
-          Hospital not found
-        </Text>
+        <Text style={{ color: "#111827", fontWeight: "700", fontSize: 16 }}>{error || 'Hospital not found'}</Text>
         <TouchableOpacity
           onPress={() => router.back()}
           style={{ marginTop: 12 }}
@@ -303,7 +316,7 @@ export default function HospitalDetailScreen() {
         {/* Hero Section with Background */}
         <View style={styles.heroSection}>
           <Image 
-            source={displayImage && /^https?:\/\//.test(displayImage) ? { uri: displayImage } : defaultImage} 
+            source={displayImage && /^https?:\/\//.test(displayImage) ? { uri: displayImage } : { uri: "https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/assets/logo.png" }} 
             style={styles.heroBackgroundImage}
             resizeMode="cover"
           />
@@ -326,9 +339,9 @@ export default function HospitalDetailScreen() {
                   category: 'Healthcare',
                   subcategory: hospital.category,
                   image: displayImage,
-                  description: hospital.description,
-                  location: hospital.description.split("\n")[1] || "",
-                  address: hospital.description.split("\n")[1] || "",
+                  description: hospital.location || "",
+                  location: hospital.location || "",
+                  address: hospital.location || "",
                   phone: "phone" in hospital ? (hospital as any).phone || "" : "",
                 }}
                 size={24}
@@ -351,11 +364,11 @@ export default function HospitalDetailScreen() {
                 <View style={styles.hospitalLocation}>
                   <Ionicons name="location" size={12} color="#ef4444" />
                   <Text style={styles.hospitalLocationText}>
-                    {hospital.description.split("\n")[1] || ""}
+                    {hospital.location || ""}
                   </Text>
                 </View>
                 <View style={styles.hospitalMeta}>
-                  <Text style={styles.hospitalPrice}>{hospital.specialist}</Text>
+                  <Text style={styles.hospitalPrice}>{hospital.category}</Text>
                 </View>
                 <View style={styles.hospitalRating}>
                   <View style={styles.ratingBadge}>
@@ -371,29 +384,24 @@ export default function HospitalDetailScreen() {
             </View>
           </View>
 
-        {/* About / Specialty */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>About & Services</Text>
           <Text style={styles.infoText}>
-            {hospital.specialist} – Expert care and patient-first approach.
+            {hospital.category} – Expert care and patient-first approach.
           </Text>
           <Text style={styles.infoText}>
-            {hospital.description.split("\n")[0]}
+            {hospital.name} provides quality healthcare services in {hospital.location}.
           </Text>
         </View>
 
-        {/* Normal & VIP Offers */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Offers & Benefits</Text>
           <OfferCards 
-            normalOffers={summarizeOffer(hospital.normalUserOffer)}
-            vipOffers={summarizeOffer(hospital.vipUserOffer)}
             category="hospital"
             serviceType={hospital.category}
           />
         </View>
 
-        {/* Booking */}
         <View style={styles.section}>
           <View style={styles.bookingHeader}>
             <Text style={styles.sectionTitle}>{hospital.category === 'Pharmacy' ? 'Request Items' : 'Book OP'}</Text>
@@ -504,16 +512,16 @@ export default function HospitalDetailScreen() {
                 <Text style={styles.bookBtnText}>Book OP</Text>
                 {isVip ? (
                   <View style={styles.priceRow}>
-                    {!!hospital.normalOpPrice && (
-                      <Text style={styles.originalPrice}>₹{hospital.normalOpPrice}</Text>
+                    {hospital.bookingPay > 0 && (
+                      <Text style={styles.originalPrice}>₹{hospital.bookingPay}</Text>
                     )}
-                    {!!hospital.vipOpPrice && (
-                      <Text style={styles.vipGlowPrice}>₹{hospital.vipOpPrice}</Text>
+                    {hospital.bookingCashback > 0 && (
+                      <Text style={styles.vipGlowPrice}>₹{hospital.bookingPay - hospital.bookingCashback}</Text>
                     )}
                   </View>
                 ) : (
-                  !!hospital.normalOpPrice && (
-                    <Text style={styles.normalPriceInline}>– ₹{hospital.normalOpPrice}</Text>
+                  hospital.bookingPay > 0 && (
+                    <Text style={styles.normalPriceInline}>– ₹{hospital.bookingPay}</Text>
                   )
                 )}
               </View>
@@ -524,39 +532,44 @@ export default function HospitalDetailScreen() {
           </Text>
         </View>
 
-        {/* FAQ Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Frequently Asked Questions</Text>
-          <View style={styles.faqList}>
-            {faqData.map((faq, index) => (
-              <View key={index} style={styles.faqItem}>
-                <TouchableOpacity
-                  style={styles.faqHeader}
-                  onPress={() => toggleFAQ(index)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.faqQuestion}>{faq.question}</Text>
-                  <Ionicons
-                    name={expandedFAQ === index ? "chevron-up" : "chevron-down"}
-                    size={20}
-                    color="#6b7280"
-                  />
-                </TouchableOpacity>
-                {expandedFAQ === index && (
-                  <View style={styles.faqAnswerContainer}>
-                    <Text style={styles.faqAnswer}>{faq.answer}</Text>
-                  </View>
-                )}
-              </View>
-            ))}
-          </View>
+          {faqLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color="#3b82f6" />
+              <Text style={styles.loadingText}>Loading FAQs...</Text>
+            </View>
+          ) : (
+            <View style={styles.faqList}>
+              {faqData.map((faq, index) => (
+                <View key={index} style={styles.faqItem}>
+                  <TouchableOpacity
+                    style={styles.faqHeader}
+                    onPress={() => toggleFAQ(index)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.faqQuestion}>{faq.question}</Text>
+                    <Ionicons
+                      name={expandedFAQ === index ? "chevron-up" : "chevron-down"}
+                      size={20}
+                      color="#6b7280"
+                    />
+                  </TouchableOpacity>
+                  {expandedFAQ === index && (
+                    <View style={styles.faqAnswerContainer}>
+                      <Text style={styles.faqAnswer}>{faq.answer}</Text>
+                    </View>
+                  )}
+                </View>
+              ))}
+            </View>
+          )}
         </View>
 
         <View style={{ height: 24 }} />
         </View>
       </ScrollView>
 
-      {/* Confirmation Modal */}
       <Modal
         visible={showConfirmModal}
         transparent={true}
@@ -576,7 +589,6 @@ export default function HospitalDetailScreen() {
               {hospital.category === 'Pharmacy' ? 'We will forward your request to the pharmacy team.' : 'Are you sure you want to book this appointment? OP fee is payable at the hospital.'}
             </Text>
             
-            {/* VIP promotion for normal users in confirmation modal */}
             {!isVip && hospital.category !== 'Pharmacy' && (
               <View style={styles.vipPromotionCard}>
                 <Ionicons name="star" size={16} color="#fbbf24" />
@@ -614,7 +626,7 @@ export default function HospitalDetailScreen() {
                   <Ionicons name="cash" size={16} color="#6b7280" />
                   <Text style={styles.detailLabel}>OP Fee:</Text>
                   <Text style={styles.detailValue}>
-                    {userMode === 'vip' ? (hospital.vipOpPrice ? `₹${hospital.vipOpPrice}` : 'As per hospital') : (hospital.normalOpPrice ? `₹${hospital.normalOpPrice}` : 'As per hospital')}
+                    {userMode === 'vip' ? (hospital.bookingCashback > 0 ? `₹${hospital.bookingPay - hospital.bookingCashback}` : 'As per hospital') : (hospital.bookingPay > 0 ? `₹${hospital.bookingPay}` : 'As per hospital')}
                   </Text>
                 </View>
               )}
@@ -642,7 +654,6 @@ export default function HospitalDetailScreen() {
         </View>
       </Modal>
 
-      {/* Loading Modal */}
       <Modal visible={isLoading} transparent={true} animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.loadingModalCard}>
@@ -657,7 +668,6 @@ export default function HospitalDetailScreen() {
         </View>
       </Modal>
 
-      {/* Success Modal */}
       <Modal
         visible={showSuccessModal}
         transparent={true}
@@ -705,9 +715,6 @@ export default function HospitalDetailScreen() {
         </View>
       </Modal>
 
-      {/* Payment popup removed */}
-
-      {/* Calendar Modal */}
       <Modal
         visible={showDatePicker}
         transparent={true}
@@ -1278,7 +1285,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#ef4444",
   },
 
-  // Modal Styles - Enhanced Simple & Professional
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.4)",
@@ -1287,7 +1293,6 @@ const styles = StyleSheet.create({
     padding: 16,
   },
 
-  // Confirmation Modal - Simplified
   confirmModalCard: {
     backgroundColor: "#ffffff",
     borderRadius: 16,
@@ -1362,7 +1367,6 @@ const styles = StyleSheet.create({
   },
   modalButtonPrimaryText: { fontSize: 15, fontWeight: "700", color: "#ffffff" },
 
-  // Loading Modal - Simplified
   loadingModalCard: {
     backgroundColor: "#ffffff",
     borderRadius: 16,
@@ -1374,14 +1378,7 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
-  loadingContainer: { alignItems: "center" },
-  loadingText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#111827",
-    marginTop: 12,
-    textAlign: "center",
-  },
+
   loadingSubtext: {
     fontSize: 13,
     color: "#6b7280",
@@ -1389,7 +1386,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  // Success Modal - Simplified
   successModalCard: {
     backgroundColor: "#ffffff",
     borderRadius: 16,
@@ -1472,7 +1468,6 @@ const styles = StyleSheet.create({
   },
   successButtonText: { fontSize: 15, fontWeight: "700", color: "#ffffff" },
 
-  // Calendar Modal
   calendarModalCard: {
     backgroundColor: "#ffffff",
     borderRadius: 16,
@@ -1536,7 +1531,6 @@ const styles = StyleSheet.create({
   },
   calendarConfirmText: { fontSize: 15, fontWeight: "700", color: "#ffffff" },
 
-  // Payment Popup Styles
   paymentPopupOverlay: {
     position: 'absolute',
     top: 0,
@@ -1655,5 +1649,16 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '700',
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+    gap: 8,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: '#6b7280',
   },
 });

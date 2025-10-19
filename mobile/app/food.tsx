@@ -1,13 +1,41 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import { View, Text, StyleSheet, TextInput, FlatList, Image, TouchableOpacity, NativeSyntheticEvent, NativeScrollEvent } from "react-native";
 import { SvgUri } from "react-native-svg";
-import { noDataSvgUrl } from "../constants/assets";
+// Default image and no data SVG URLs for fallback
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRouter } from "expo-router";
-import { restaurantData, Restaurant } from "../constants/restaurantData";
 import LikeButton from "@/components/common/LikeButton";
-import { defaultImage } from "../constants/assets";
+import { BASE_URL } from "../constants/api";
 
+type Restaurant = {
+  id: string;
+  name: string;
+  category: string;
+  image: string;
+  specialist: string[];
+  menu: any;
+  discounts: {
+    normal_users: string;
+    vip_users: string;
+  };
+  actions: {
+    book_table: string;
+  };
+  offers: {
+    cashback: string;
+    payment: string;
+  };
+  photos: string[];
+  rating: number;
+  reviews: number;
+  distance: string;
+  phone: string;
+  openTime: string;
+  area: string;
+  priceForTwo: string;
+  opensIn: string;
+  savePercent?: number;
+};
 
 export default function FoodScreen() {
   const navigation = useNavigation();
@@ -15,8 +43,28 @@ export default function FoodScreen() {
   const listRef = useRef<FlatList<any>>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [query, setQuery] = useState("");
+  const [data, setData] = useState<Restaurant[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const data = useMemo<Restaurant[]>(() => restaurantData, []);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await fetch(`${BASE_URL}/restaurants`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        if (alive) setData(json as Restaurant[]);
+      } catch (e: any) {
+        if (alive) setError(e?.message || 'Failed to load');
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
 
   const matchesOrdered = (q: string, ...fields: string[]) => {
     const queryStr = q.trim().toLowerCase();
@@ -72,10 +120,10 @@ export default function FoodScreen() {
         ListEmptyComponent={() => (
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIllustrationWrapper}>
-              <SvgUri uri={noDataSvgUrl} width="100%" height="100%" />
+              <SvgUri uri="https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/assets/no-data.svg" width="100%" height="100%" />
             </View>
-            <Text style={styles.emptyTitle}>No items found</Text>
-            <Text style={styles.emptySubtitle}>Try a different search query.</Text>
+            <Text style={styles.emptyTitle}>{loading ? 'Loading...' : error ? 'Failed to load' : 'No items found'}</Text>
+            <Text style={styles.emptySubtitle}>{loading ? 'Please wait' : error ? error : 'Try a different search query.'}</Text>
           </View>
         )}
         onScroll={(e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -98,7 +146,7 @@ export default function FoodScreen() {
                 source={
                   item.image && /^https?:\/\//.test(item.image)
                     ? { uri: item.image }
-                    : defaultImage
+                    : { uri: "https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/assets/logo.png" }
                 }
                 style={styles.image}
                 resizeMode="cover"

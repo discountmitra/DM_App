@@ -1,13 +1,10 @@
-import { useMemo, useState, useRef } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, TextInput, Modal, ActivityIndicator, Linking } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter, useNavigation } from "expo-router";
 import LikeButton from "../components/common/LikeButton";
 import OfferCards from "../components/common/OfferCards";
-import { categoryOffers } from "../constants/offerData";
-import { salonServices, SalonLocation } from "../constants/salonData";
-import { salonFaq as faqData } from "../constants/faqData";
-import { defaultImage } from "../constants/assets";
+import { BASE_URL } from "../constants/api";
 
 type UserType = 'normal' | 'vip';
 
@@ -18,31 +15,58 @@ interface ServicePrice {
   discount: number;
 }
 
-import { serviceCategories } from "../constants/salonData";
+
+
+type Salon = {
+  id: string;
+  name: string;
+  address: string;
+  category: 'men' | 'women' | 'unisex';
+  rating: number;
+  reviews: number;
+  image?: string;
+  phone?: string;
+};
 
 export default function SalonDetailScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
   const navigation = useNavigation();
-  const salon = useMemo(() => {
-    const salonId = (params.id as string) || "";
-    const salonData = salonServices.find((s: SalonLocation) => s.id === salonId);
-    
-    return {
-      id: salonId,
-      name: (params.name as string) || salonData?.name || "Hair Zone Makeover",
-      address: (params.address as string) || salonData?.address || "Near Gandhi Nagar, Subash Nagar Road, Sircilla",
-      rating: parseFloat((params.rating as string) || salonData?.rating?.toString() || "4.8"),
-      reviews: parseInt((params.reviews as string) || salonData?.reviews?.toString() || "234"),
-      image: typeof params.image === 'string' ? (params.image as string) : (salonData?.image || ""),
-      phone: (salonData as any)?.phone as string | undefined,
-    };
-  }, [params]);
+  const [salon, setSalon] = useState<Salon | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        setLoading(true);
+        setLoadError(null);
+        const id = String(params.id || "");
+        const res = await fetch(`${BASE_URL}/salons/${id}`);
+        if (res.status === 404) {
+          const all = await fetch(`${BASE_URL}/salons`);
+          const list = await all.json();
+          const found = (list as any[]).find((s) => s.id === id) || null;
+          if (alive) setSalon(found);
+        } else if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        } else {
+          const json = await res.json();
+          if (alive) setSalon(json as Salon);
+        }
+      } catch (e: any) {
+        if (alive) setLoadError(e?.message || 'Failed to load');
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, [params.id]);
 
   const [userName, setUserName] = useState("");
   const [userPhone, setUserPhone] = useState("");
-  const [selectedServices, setSelectedServices] = useState<string[]>([]);
-  const [userType, setUserType] = useState<UserType>('normal');
+  
   const [appointmentDate, setAppointmentDate] = useState("");
   const [appointmentTime, setAppointmentTime] = useState("");
   const [errors, setErrors] = useState<{ name?: string; phone?: string; services?: string; date?: string; time?: string }>({});
@@ -54,33 +78,19 @@ export default function SalonDetailScreen() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [bookingCode, setBookingCode] = useState("");
   const [showStickyHeader, setShowStickyHeader] = useState(false);
+  const [faqData, setFaqData] = useState<Array<{question: string; answer: string}>>([]);
+  const [faqLoading, setFaqLoading] = useState(true);
 
 
-  const toggleService = (serviceName: string) => {
-    setSelectedServices(prev => 
-      prev.includes(serviceName) 
-        ? prev.filter(s => s !== serviceName)
-        : [...prev, serviceName]
-    );
-  };
+  
 
-  const calculateTotal = () => {
-    let total = 0;
-    Object.values(serviceCategories).forEach(category => {
-      category.forEach(service => {
-        if (selectedServices.includes(service.name)) {
-          total += userType === 'vip' ? service.vip.discounted : service.normal.discounted;
-        }
-      });
-    });
-    return total;
-  };
+  
 
   const handleBooking = () => {
     const newErrors: { name?: string; phone?: string; services?: string; date?: string; time?: string } = {};
     if (!userName.trim()) newErrors.name = "Name is required";
     if (!/^\d{10}$/.test(userPhone.trim())) newErrors.phone = "Enter valid 10-digit phone";
-    if (selectedServices.length === 0) newErrors.services = "Select at least one service";
+    
     if (!appointmentDate.trim()) newErrors.date = "Select appointment date";
     if (!appointmentTime.trim()) newErrors.time = "Select appointment time";
     setErrors(newErrors);
@@ -108,7 +118,6 @@ export default function SalonDetailScreen() {
     // Clear form
     setUserName("");
     setUserPhone("");
-    setSelectedServices([]);
     setAppointmentDate("");
     setAppointmentTime("");
     setErrors({});
@@ -153,7 +162,7 @@ export default function SalonDetailScreen() {
   };
 
   const handleCall = async () => {
-    const number = (salon as any).phone as string | undefined;
+    const number = salon?.phone as string | undefined;
     if (!number) return;
     const url = `tel:${number}`;
     const supported = await Linking.canOpenURL(url);
@@ -164,6 +173,26 @@ export default function SalonDetailScreen() {
     const offsetY = event.nativeEvent.contentOffset.y;
     setShowStickyHeader(offsetY > 100);
   };
+
+  // Fetch FAQ data
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        setFaqLoading(true);
+        const res = await fetch(`${BASE_URL}/faq/salon`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        if (alive) setFaqData(json);
+      } catch (e: any) {
+        console.error('Failed to load FAQ:', e);
+        if (alive) setFaqData([]);
+      } finally {
+        if (alive) setFaqLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
 
   const generateCalendarDays = () => {
     const today = new Date();
@@ -192,37 +221,26 @@ export default function SalonDetailScreen() {
     return days;
   };
 
-  const renderServiceCategory = (title: string, icon: string, services: ReadonlyArray<any>) => (
-    <View key={title} style={styles.section}>
-      <View style={styles.categoryHeader}>
-        <Ionicons name={icon as any} size={20} color="#111827" />
-        <Text style={styles.categoryTitle}>{title}</Text>
+  
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { alignItems: 'center', justifyContent: 'center' }]}>
+        <ActivityIndicator size="large" color="#b53471" />
+        <Text style={{ marginTop: 12, color: '#6b7280' }}>Loading salon...</Text>
       </View>
-      {services.map((service, index) => {
-        const isSelected = selectedServices.includes(service.name);
-        const pricing = userType === 'vip' ? service.vip : service.normal;
-        return (
-          <TouchableOpacity 
-            key={index} 
-            style={[styles.serviceItem, isSelected && styles.serviceItemSelected]}
-            onPress={() => toggleService(service.name)}
-          >
-            <View style={styles.serviceInfo}>
-              <Text style={[styles.serviceName, isSelected && styles.serviceNameSelected]}>{service.name}</Text>
-              <View style={styles.priceContainer}>
-                <Text style={styles.originalPrice}>₹{service.original}</Text>
-                <Text style={[styles.discountedPrice, isSelected && styles.discountedPriceSelected]}>₹{pricing.discounted}</Text>
-                <Text style={styles.savings}>Save ₹{pricing.discount}</Text>
-              </View>
-            </View>
-            <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
-              {isSelected && <Ionicons name="checkmark" size={16} color="#ffffff" />}
-            </View>
-          </TouchableOpacity>
-        );
-      })}
-    </View>
-  );
+    );
+  }
+
+  if (!salon || loadError) {
+    return (
+      <View style={[styles.container, { alignItems: 'center', justifyContent: 'center' }]}>
+        <Ionicons name="alert-circle" size={48} color="#ef4444" />
+        <Text style={{ marginTop: 12, color: '#111827', fontWeight: '700' }}>{loadError ? 'Failed to load salon' : 'Salon not found'}</Text>
+        {!!loadError && <Text style={{ marginTop: 6, color: '#6b7280' }}>{loadError}</Text>}
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -256,7 +274,7 @@ export default function SalonDetailScreen() {
         {/* Hero Section with Background */}
         <View style={styles.heroSection}>
           <Image 
-            source={salon.image && /^https?:\/\//.test(salon.image) ? { uri: salon.image } : defaultImage} 
+            source={salon.image && /^https?:\/\//.test(salon.image) ? { uri: salon.image } : { uri: "https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/assets/logo.png" }} 
             style={styles.heroBackgroundImage}
             resizeMode="cover"
           />
@@ -328,10 +346,7 @@ export default function SalonDetailScreen() {
         </View>
 
 
-        {/* Services */}
-        {renderServiceCategory("Haircuts", "cut", serviceCategories.haircuts)}
-        {renderServiceCategory("Facial", "flower", serviceCategories.facial)}
-        {renderServiceCategory("Tattoo", "brush", serviceCategories.tattoo)}
+        {/* Services selection temporarily removed */}
 
         {/* Normal & VIP Offers */}
         <View style={styles.section}>
@@ -399,19 +414,14 @@ export default function SalonDetailScreen() {
             {errors.time ? <Text style={styles.errorText}>{errors.time}</Text> : null}
           </View>
 
-          {errors.services ? <Text style={styles.errorText}>{errors.services}</Text> : null}
+        
 
-          {selectedServices.length > 0 && (
-            <View style={styles.totalCard}>
-              <Text style={styles.totalLabel}>Total Amount</Text>
-              <Text style={styles.totalAmount}>₹{calculateTotal()}</Text>
-            </View>
-          )}
+          
 
           <TouchableOpacity 
             activeOpacity={0.9} 
             onPress={handleBooking} 
-            style={[styles.bookButton, selectedServices.length === 0 && styles.bookButtonDisabled]}
+            style={styles.bookButton}
           >
             <Text style={styles.bookButtonText}>Pay and Book</Text>
           </TouchableOpacity>
@@ -420,29 +430,36 @@ export default function SalonDetailScreen() {
         {/* FAQ Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Frequently Asked Questions</Text>
-          <View style={styles.faqList}>
-            {faqData.map((faq, index) => (
-              <View key={index} style={styles.faqItem}>
-                <TouchableOpacity 
-                  style={styles.faqHeader}
-                  onPress={() => toggleFAQ(index)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.faqQuestion}>{faq.question}</Text>
-                  <Ionicons 
-                    name={expandedFAQ === index ? "chevron-up" : "chevron-down"} 
-                    size={20} 
-                    color="#6b7280" 
-                  />
-                </TouchableOpacity>
-                {expandedFAQ === index && (
-                  <View style={styles.faqAnswerContainer}>
-                    <Text style={styles.faqAnswer}>{faq.answer}</Text>
-                  </View>
-                )}
-              </View>
-            ))}
-          </View>
+          {faqLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color="#3b82f6" />
+              <Text style={styles.loadingText}>Loading FAQs...</Text>
+            </View>
+          ) : (
+            <View style={styles.faqList}>
+              {faqData.map((faq, index) => (
+                <View key={index} style={styles.faqItem}>
+                  <TouchableOpacity 
+                    style={styles.faqHeader}
+                    onPress={() => toggleFAQ(index)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.faqQuestion}>{faq.question}</Text>
+                    <Ionicons 
+                      name={expandedFAQ === index ? "chevron-up" : "chevron-down"} 
+                      size={20} 
+                      color="#6b7280" 
+                    />
+                  </TouchableOpacity>
+                  {expandedFAQ === index && (
+                    <View style={styles.faqAnswerContainer}>
+                      <Text style={styles.faqAnswer}>{faq.answer}</Text>
+                    </View>
+                  )}
+                </View>
+              ))}
+            </View>
+          )}
         </View>
 
         <View style={{ height: 24 }} />
@@ -566,11 +583,7 @@ export default function SalonDetailScreen() {
                 <Text style={styles.detailLabel}>Date:</Text>
                 <Text style={styles.detailValue}>{appointmentDate}</Text>
               </View>
-              <View style={styles.detailRow}>
-                <Ionicons name="cash" size={16} color="#6b7280" />
-                <Text style={styles.detailLabel}>Total:</Text>
-                <Text style={styles.detailValue}>₹{calculateTotal()}</Text>
-              </View>
+              
             </View>
             
             <View style={styles.modalButtonContainer}>
@@ -957,6 +970,7 @@ const styles = StyleSheet.create({
   faqQuestion: { fontSize: 16, fontWeight: '600', color: '#111827', flex: 1, marginRight: 12 },
   faqAnswerContainer: { paddingTop: 12, paddingLeft: 4 },
   faqAnswer: { fontSize: 14, color: '#6b7280', lineHeight: 20 },
+
   
   // Calendar Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.4)', justifyContent: 'center', alignItems: 'center', padding: 16 },

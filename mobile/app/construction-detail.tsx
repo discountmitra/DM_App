@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Image, Modal, ActivityIndicator, Animated, TouchableWithoutFeedback, Dimensions, FlatList, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
@@ -6,11 +6,9 @@ import { useVip } from '../contexts/VipContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import LikeButton from '../components/common/LikeButton';
 import OfferCards from '../components/common/OfferCards';
-import { categoryOffers } from '../constants/offerData';
-import { constructionData as constructionItems } from '../constants/constructionData';
-import { defaultImage } from '../constants/assets';
-import { constructionFaq as faqData } from "../constants/faqData";
-import { constructionInteriorDesignImages } from "../constants/galleryData";
+import { BASE_URL } from '../constants/api';
+// FAQ data now fetched from backend API
+// Gallery images now come from database
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type ConstructionData = {
@@ -23,6 +21,10 @@ type ConstructionData = {
   reviews: number;
   availability: string;
   image?: string;
+  normalUserOffer?: string;
+  vipUserOffer?: string;
+  phone?: string;
+  gallery?: string[];
 };
 
 export default function ConstructionDetailScreen() {
@@ -45,12 +47,12 @@ export default function ConstructionDetailScreen() {
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
   const [showPaymentPopup, setShowPaymentPopup] = useState(false);
   const [popupAnim] = useState(new Animated.Value(0));
+  const [faqData, setFaqData] = useState<Array<{question: string; answer: string}>>([]);
+  const [faqLoading, setFaqLoading] = useState(true);
   const [showGalleryModal, setShowGalleryModal] = useState(false);
   const [activeGalleryIndex, setActiveGalleryIndex] = useState(0);
   const [viewerData, setViewerData] = useState<{ id: number; url: string }[]>([]);
   const viewerListRef = useRef<FlatList<any>>(null);
-
-  
 
   const toggleFAQ = (index: number) => {
     setExpandedFAQ(expandedFAQ === index ? null : index);
@@ -61,38 +63,71 @@ export default function ConstructionDetailScreen() {
     setShowStickyHeader(y > 100);
   };
 
-  // Use centralized construction items; keep slug mapping logic
-  const items: ConstructionData[] = constructionItems.map(it => ({
-    category: it.category,
-    name: it.name,
-    description: it.description,
-    price: it.price,
-    details: it.details,
-    rating: it.rating,
-    reviews: it.reviews,
-    availability: it.availability,
-    image: it.image,
-  }));
+  const [service, setService] = useState<(ConstructionData & { id: string }) | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Function to convert individual offers to array format
-  const convertOffersToArray = (offerText: string) => {
-    if (!offerText) return [];
-    return offerText.split('\n').filter(line => line.trim() !== '');
-  };
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await fetch(`${BASE_URL}/construction/${encodeURIComponent(String(constructionId))}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        if (alive) setService(json);
+      } catch (e: any) {
+        if (alive) setError(e?.message || 'Failed to load');
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, [constructionId]);
+
+  // Fetch FAQ data
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        setFaqLoading(true);
+        const res = await fetch(`${BASE_URL}/faq/construction`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        if (alive) setFaqData(json);
+      } catch (e: any) {
+        // Silently handle FAQ loading errors - not critical for app functionality
+        if (alive) setFaqData([]);
+      } finally {
+        if (alive) setFaqLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
+
 
   const current = useMemo(() => {
-    const slug = (s: string) => s.toLowerCase().replace(/\s+/g, '-');
-    const found = items.find(it => slug(it.name) === String(constructionId || '').toLowerCase()) || items[0];
+    if (!service) return null;
     return {
-      id: found.name.toLowerCase().replace(/\s+/g, '-'),
-      ...found,
-      normalUserOffer: (params.normalUserOffer as string) || "",
-      vipUserOffer: (params.vipUserOffer as string) || "",
+      id: service.id,
+      category: service.category,
+      name: service.name,
+      description: service.description,
+      price: service.price,
+      details: service.details,
+      rating: service.rating,
+      reviews: service.reviews,
+      availability: service.availability,
+      image: service.image,
+      normalUserOffer: (params.normalUserOffer as string) || service.normalUserOffer || "",
+      vipUserOffer: (params.vipUserOffer as string) || service.vipUserOffer || "",
+      phone: service.phone,
+      gallery: service.gallery || [],
     };
-  }, [constructionId, params.normalUserOffer, params.vipUserOffer]);
+  }, [service, params.normalUserOffer, params.vipUserOffer]);
 
-  // Use current item's image if no headerImage is provided
-  const displayImage = headerImage || current.image || "";
+  const displayImage = headerImage || current?.image || "";
 
   const handleRequest = () => {
     const newErrors: { name?: string; phone?: string; quantity?: string } = {};
@@ -100,7 +135,7 @@ export default function ConstructionDetailScreen() {
     if (!/^\d{10}$/.test(phoneNumber.trim())) newErrors.phone = 'Enter valid 10-digit phone';
     
     // Add quantity validation for bricks type
-    if (current.category === 'Bricks') {
+    if (current?.category === 'Bricks') {
       if (!quantity.trim()) newErrors.quantity = 'Quantity is required';
       else if (!/^\d+$/.test(quantity.trim())) newErrors.quantity = 'Enter valid number';
     }
@@ -149,12 +184,26 @@ export default function ConstructionDetailScreen() {
   };
 
   const handleCall = async () => {
-    const number = (current as any).phone as string | undefined;
+    const number = current?.phone as string | undefined;
     if (!number) return;
     const url = `tel:${number}`;
     const supported = await Linking.canOpenURL(url);
     if (supported) Linking.openURL(url);
   };
+
+  if (loading) return (
+    <View style={styles.container}>
+      <ActivityIndicator style={{ marginTop: 40 }} color="#f97316" />
+    </View>
+  );
+  
+  if (error || !current) return (
+    <View style={styles.container}>
+      <Text style={{ marginTop: 40, textAlign: 'center', color: '#6b7280' }}>
+        {error || 'Not found'}
+      </Text>
+    </View>
+  );
 
   return (
     <View style={styles.container}>
@@ -181,7 +230,7 @@ export default function ConstructionDetailScreen() {
       <ScrollView style={styles.scrollView} onScroll={onScroll} scrollEventThrottle={16} showsVerticalScrollIndicator={false}>
         <View style={styles.heroSection}>
           <Image
-            source={displayImage && /^https?:\/\//.test(displayImage) ? { uri: displayImage } : defaultImage}
+            source={displayImage && /^https?:\/\//.test(displayImage) ? { uri: displayImage } : { uri: "https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/assets/logo.png" }}
             style={styles.heroBackgroundImage}
             resizeMode="cover"
           />
@@ -196,7 +245,7 @@ export default function ConstructionDetailScreen() {
               </TouchableOpacity>
               <LikeButton 
                 item={{
-                  id: current.name.toLowerCase().replace(/\s+/g, '-'),
+                  id: current.id,
                   name: current.name,
                   category: 'Construction',
                   subcategory: current.category,
@@ -250,33 +299,29 @@ export default function ConstructionDetailScreen() {
             <Text style={styles.descText}>{current.description}</Text>
           </View>
 
-          {/* Normal & VIP Offers */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Offers & Benefits</Text>
             <OfferCards 
-              normalOffers={current.normalUserOffer ? convertOffersToArray(current.normalUserOffer) : undefined}
-              vipOffers={current.vipUserOffer ? convertOffersToArray(current.vipUserOffer) : undefined}
               category="construction"
               serviceType={current.category}
             />
           </View>
 
-          {/* Gallery section for Interior Design */}
-          {current.id === 'interior-design' && constructionInteriorDesignImages.length > 0 && (
+          {current.id === 'interior-design' && current.gallery && current.gallery.length > 0 && (
             <View style={styles.section}>
               <View style={styles.galleryHeaderRow}>
                 <Text style={styles.sectionTitle}>Our Work Gallery</Text>
-                <View style={styles.galleryBadge}><Text style={styles.galleryBadgeText}>{constructionInteriorDesignImages.length} Photos</Text></View>
+                <View style={styles.galleryBadge}><Text style={styles.galleryBadgeText}>{current.gallery.length} Photos</Text></View>
               </View>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.galleryRow}>
-                {constructionInteriorDesignImages.map((uri, idx) => (
+                {current.gallery.map((uri, idx) => (
                   <TouchableOpacity
                     key={`${uri}-${idx}`}
                     activeOpacity={0.9}
                     style={styles.galleryCard}
                     onPress={() => {
                       setActiveGalleryIndex(idx);
-                      setViewerData(constructionInteriorDesignImages.map((u, i) => ({ id: i + 1, url: u })));
+                      setViewerData(current.gallery?.map((u, i) => ({ id: i + 1, url: u })) || []);
                       setShowGalleryModal(true);
                     }}
                   >
@@ -323,29 +368,36 @@ export default function ConstructionDetailScreen() {
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Frequently Asked Questions</Text>
-            <View style={styles.faqList}>
-              {faqData.map((faq, index) => (
-                <View key={index} style={styles.faqItem}>
-                  <TouchableOpacity
-                    style={styles.faqHeader}
-                    onPress={() => toggleFAQ(index)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.faqQuestion}>{faq.question}</Text>
-                    <Ionicons
-                      name={expandedFAQ === index ? 'chevron-up' : 'chevron-down'}
-                      size={20}
-                      color="#6b7280"
-                    />
-                  </TouchableOpacity>
-                  {expandedFAQ === index && (
-                    <View style={styles.faqAnswerContainer}>
-                      <Text style={styles.faqAnswer}>{faq.answer}</Text>
-                    </View>
-                  )}
-                </View>
-              ))}
-            </View>
+            {faqLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color="#3b82f6" />
+                <Text style={styles.loadingText}>Loading FAQs...</Text>
+              </View>
+            ) : (
+              <View style={styles.faqList}>
+                {faqData.map((faq, index) => (
+                  <View key={index} style={styles.faqItem}>
+                    <TouchableOpacity
+                      style={styles.faqHeader}
+                      onPress={() => toggleFAQ(index)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.faqQuestion}>{faq.question}</Text>
+                      <Ionicons
+                        name={expandedFAQ === index ? 'chevron-up' : 'chevron-down'}
+                        size={20}
+                        color="#6b7280"
+                      />
+                    </TouchableOpacity>
+                    {expandedFAQ === index && (
+                      <View style={styles.faqAnswerContainer}>
+                        <Text style={styles.faqAnswer}>{faq.answer}</Text>
+                      </View>
+                    )}
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
 
           <View style={{ height: 24 }} />
@@ -361,7 +413,6 @@ export default function ConstructionDetailScreen() {
         </View>
       </Modal>
 
-      {/* Gallery Fullscreen Modal */}
       <Modal visible={showGalleryModal} animationType="fade" transparent={false} onRequestClose={() => setShowGalleryModal(false)}>
         <SafeAreaView style={styles.viewerContainer}>
           <View style={styles.viewerHeader}>
@@ -402,7 +453,6 @@ export default function ConstructionDetailScreen() {
         </SafeAreaView>
       </Modal>
 
-      {/* Confirmation Modal */}
       <Modal visible={showConfirmModal} transparent animationType="fade" onRequestClose={() => setShowConfirmModal(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.confirmModalCard}>
@@ -425,7 +475,6 @@ export default function ConstructionDetailScreen() {
         </View>
       </Modal>
 
-      {/* Payment Popup for Normal Users */}
       {showPaymentPopup && (
         <View style={styles.paymentPopupOverlay}>
           <TouchableWithoutFeedback onPress={handleClosePaymentPopup}>
@@ -591,7 +640,6 @@ const styles = StyleSheet.create({
   successButton: { paddingVertical: 14, borderRadius: 10, alignItems: 'center', backgroundColor: '#f97316', width: '100%' },
   successButtonText: { fontSize: 15, fontWeight: '700', color: '#ffffff' },
 
-  // Gallery styles (aligned with Events)
   galleryHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
   galleryBadge: { backgroundColor: '#f3f4f6', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
   galleryBadgeText: { fontSize: 12, fontWeight: '700', color: '#6b7280' },
@@ -600,8 +648,6 @@ const styles = StyleSheet.create({
   galleryImage: { width: '100%', height: '100%' },
   galleryOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.08)' },
   galleryCornerBadge: { position: 'absolute', right: 8, bottom: 8, backgroundColor: 'rgba(17,24,39,0.7)', paddingHorizontal: 8, paddingVertical: 6, borderRadius: 999 },
-
-  // Viewer styles (aligned with Events)
   viewerContainer: { flex: 1, backgroundColor: '#000' },
   viewerHeader: { height: 56, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   viewerBackButton: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.15)' },
@@ -612,7 +658,6 @@ const styles = StyleSheet.create({
   viewerImage: { width: '100%', height: '100%' },
   viewerCaptionWrap: { position: 'absolute', left: 0, right: 0, bottom: 24, alignItems: 'center' },
   viewerCaption: { color: '#e5e7eb', fontSize: 12 },
-  // Payment Popup Styles
   paymentPopupOverlay: {
     position: 'absolute',
     top: 0,
@@ -732,6 +777,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+    gap: 8,
+  },
 });
-
-

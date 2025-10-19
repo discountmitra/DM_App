@@ -1,13 +1,42 @@
-import { useMemo, useState, useRef } from "react";
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Linking, Alert, Animated, Modal, Dimensions, FlatList } from "react-native";
+import { useMemo, useState, useRef, useEffect } from "react";
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Linking, Alert, Animated, Modal, Dimensions, FlatList, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useLocalSearchParams, useRouter } from "expo-router";
-import { restaurantData, Restaurant } from "../constants/restaurantData";
 import LikeButton from "../components/common/LikeButton";
-import { reviews } from "../constants/reviewsData";
-import { getAvatarColor } from "../constants/reviewsData";
-import { defaultImage } from "../constants/assets";
+// reviews and getAvatarColor removed - using database data
+// Default image URL for fallback
+import { BASE_URL } from "../constants/api";
+
+type Restaurant = {
+  id: string;
+  name: string;
+  category: string;
+  image: string;
+  specialist: string[];
+  menu: any;
+  discounts: {
+    normal_users: string;
+    vip_users: string;
+  };
+  actions: {
+    book_table: string;
+  };
+  offers: {
+    cashback: string;
+    payment: string;
+  };
+  photos: string[];
+  rating: number;
+  reviews: number;
+  distance: string;
+  phone: string;
+  openTime: string;
+  area: string;
+  priceForTwo: string;
+  opensIn: string;
+  savePercent?: number;
+};
 
 export default function RestaurantDetailScreen() {
   const navigation = useNavigation();
@@ -15,23 +44,39 @@ export default function RestaurantDetailScreen() {
   const params = useLocalSearchParams();
   const headerImage = typeof params.image === 'string' ? (params.image as string) : '';
   
-  const scrollY = useRef(new Animated.Value(0)).current;
   const [showStickyHeader, setShowStickyHeader] = useState(false);
   const [isViewerVisible, setIsViewerVisible] = useState(false);
   const [viewerStartIndex, setViewerStartIndex] = useState(0);
   const [viewerData, setViewerData] = useState<GalleryImage[]>([]);
   const [currentViewerIndex, setCurrentViewerIndex] = useState(0);
   const viewerListRef = useRef<FlatList<any>>(null);
+  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   type GalleryImage = { id: number; url: string };
 
-  // Get restaurant data from params or use first restaurant as default
-  const restaurant: Restaurant = useMemo(() => {
-    const restaurantId = params.restaurantId as string;
-    return restaurantData.find(r => r.id === restaurantId) || restaurantData[0];
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await fetch(`${BASE_URL}/restaurants/${params.restaurantId}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        if (alive) setRestaurant(json as Restaurant);
+      } catch (e: any) {
+        if (alive) setError(e?.message || 'Failed to load');
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => { alive = false; };
   }, [params.restaurantId]);
 
   const handleDineOut = () => {
+    if (!restaurant) return;
     router.push({
       pathname: '/dine-out',
       params: { restaurantId: restaurant.id }
@@ -43,6 +88,7 @@ export default function RestaurantDetailScreen() {
   };
 
   const handleCall = async () => {
+    if (!restaurant) return;
     const number = (restaurant.phone || '').replace(/\s+/g, '');
     if (!number) return;
     const url = `tel:${number}`;
@@ -51,6 +97,7 @@ export default function RestaurantDetailScreen() {
   };
 
   const handleDirections = () => {
+    if (!restaurant) return;
     const address = `${restaurant.area}, ${restaurant.distance}`;
     const encodedAddress = encodeURIComponent(address);
     const url = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
@@ -60,18 +107,13 @@ export default function RestaurantDetailScreen() {
     });
   };
 
-
-  const handleScroll = Animated.event(
-    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-    { useNativeDriver: false }
-  );
-
   const onScroll = (event: any) => {
     const offsetY = event.nativeEvent.contentOffset.y;
     setShowStickyHeader(offsetY > 100);
   };
 
   const galleryImages: GalleryImage[] = useMemo(() => {
+    if (!restaurant) return [];
     const photos = Array.isArray(restaurant.photos) ? restaurant.photos : [];
     if (photos.length > 0) {
       return photos.map((url, index) => ({ id: index + 1, url }));
@@ -81,7 +123,7 @@ export default function RestaurantDetailScreen() {
       return [{ id: 1, url: headerImage }];
     }
     return [];
-  }, [restaurant.photos, headerImage]);
+  }, [restaurant?.photos, headerImage]);
 
   const filteredImages = galleryImages;
 
@@ -104,7 +146,33 @@ export default function RestaurantDetailScreen() {
     return { length: width, offset: width * index, index };
   };
 
-  // reviews imported at top from constants
+  // reviews data now comes from database
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#3b82f6" />
+          <Text style={styles.loadingText}>Loading restaurant details...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (error || !restaurant) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle" size={48} color="#ef4444" />
+          <Text style={styles.errorTitle}>Failed to load</Text>
+          <Text style={styles.errorSubtitle}>{error || 'Restaurant not found'}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={() => router.back()}>
+            <Text style={styles.retryButtonText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -138,7 +206,7 @@ export default function RestaurantDetailScreen() {
         {/* Hero Section with Background */}
         <View style={styles.heroSection}>
           <Image 
-            source={headerImage && /^https?:\/\//.test(headerImage) ? { uri: headerImage } : defaultImage} 
+            source={headerImage && /^https?:\/\//.test(headerImage) ? { uri: headerImage } : { uri: "https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/assets/logo.png" }} 
             style={styles.heroBackgroundImage}
             resizeMode="cover"
           />
@@ -305,21 +373,9 @@ export default function RestaurantDetailScreen() {
               contentContainerStyle={styles.reviewsScrollContent}
               pagingEnabled={false}
             >
-              {reviews.map((review, index) => (
-                <View key={review.id} style={styles.reviewCard}>
-                  <View style={styles.reviewHeader}>
-                    <View style={[styles.reviewAvatar, { backgroundColor: getAvatarColor(review.name) }]}>
-                      <Text style={styles.reviewInitial}>{review.name.charAt(0)}</Text>
-                    </View>
-                    <View style={styles.reviewInfo}>
-                      <Text style={styles.reviewName}>{review.name}</Text>
-                      <Text style={styles.reviewDate}>{review.date}</Text>
-                    </View>
-                    <Text style={styles.reviewRating}>⭐ {review.rating}.0</Text>
-                  </View>
-                  <Text style={styles.reviewComment} numberOfLines={3}>{review.comment}</Text>
-                </View>
-              ))}
+              <View style={styles.reviewCard}>
+                <Text style={styles.reviewComment}>Reviews will be loaded from database</Text>
+              </View>
             </ScrollView>
           </View>
         </View>
@@ -973,5 +1029,48 @@ const styles = StyleSheet.create({
     fontSize: 10,
     letterSpacing: 0.5,
     fontWeight: "600",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#6b7280',
+    fontWeight: '500',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    padding: 24,
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  errorSubtitle: {
+    fontSize: 14,
+    color: '#6b7280',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  retryButton: {
+    backgroundColor: '#3b82f6',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

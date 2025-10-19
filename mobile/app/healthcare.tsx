@@ -1,13 +1,24 @@
-import { useMemo, useRef, useState } from "react";
-import { View, Text, StyleSheet, TextInput, FlatList, Image, TouchableOpacity, ScrollView, NativeSyntheticEvent, NativeScrollEvent } from "react-native";
+import { useMemo, useRef, useState, useEffect } from "react";
+import { View, Text, StyleSheet, TextInput, FlatList, Image, TouchableOpacity, NativeSyntheticEvent, NativeScrollEvent } from "react-native";
 import { SvgUri } from "react-native-svg";
-import { noDataSvgUrl } from "../constants/assets";
+// Default image and no data SVG URLs for fallback
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, router, useLocalSearchParams } from "expo-router";
-import { useEffect } from "react";
 import LikeButton from "../components/common/LikeButton";
-import { healthcareData, healthcareCategories, HealthcareCategoryKey, HealthcareProvider } from "../constants/healthcareData";
-import { defaultImage } from "../constants/assets";
+import { BASE_URL } from "../constants/api";
+
+type HealthcareCategoryKey = string;
+type HealthcareItem = {
+  id: string;
+  name: string;
+  location: string;
+  bookingPay: number;
+  bookingCashback: number;
+  specialOffers: string[];
+  phone: string;
+  category: string;
+  image?: string;
+};
 
 export default function HealthcareScreen() {
   const navigation = useNavigation();
@@ -16,13 +27,21 @@ export default function HealthcareScreen() {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<HealthcareCategoryKey>("All");
   const [query, setQuery] = useState("");
+  const [data, setData] = useState<HealthcareItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const categories = useMemo(() => ["All", ...Array.from(new Set(data.map(h => h.category)))], [data]);
 
   useEffect(() => {
     const pre = params.preselect as string | undefined;
-    if (pre && healthcareCategories.includes(pre as any)) {
+    if (pre && categories.includes(pre)) {
       setSelectedCategory(pre as HealthcareCategoryKey);
+      return;
     }
-  }, [params.preselect]);
+    if (!pre && categories.length && !categories.includes(selectedCategory)) {
+      setSelectedCategory(categories[0] as HealthcareCategoryKey);
+    }
+  }, [params.preselect, categories]);
 
   // Redirect to types tab if entered without a preselected type
   useEffect(() => {
@@ -31,7 +50,24 @@ export default function HealthcareScreen() {
     }
   }, []);
 
-  const data = useMemo(() => healthcareData, []);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await fetch(`${BASE_URL}/healthcare`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        if (alive) setData(json as HealthcareItem[]);
+      } catch (e: any) {
+        if (alive) setError(e?.message || 'Failed to load');
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
 
   const matchesOrdered = (q: string, ...fields: string[]) => {
     const queryStr = q.trim().toLowerCase();
@@ -81,7 +117,6 @@ export default function HealthcareScreen() {
         </View>
       </View>
 
-      {/* Types are now shown in a dedicated tab; horizontal chips removed */}
 
       <FlatList
         ref={listRef}
@@ -91,10 +126,10 @@ export default function HealthcareScreen() {
         ListEmptyComponent={() => (
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIllustrationWrapper}>
-              <SvgUri uri={noDataSvgUrl} width="100%" height="100%" />
+              <SvgUri uri="https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/assets/no-data.svg" width="100%" height="100%" />
             </View>
-            <Text style={styles.emptyTitle}>No items found</Text>
-            <Text style={styles.emptySubtitle}>Try a different search query.</Text>
+            <Text style={styles.emptyTitle}>{loading ? 'Loading...' : error ? 'Failed to load' : 'No items found'}</Text>
+            <Text style={styles.emptySubtitle}>{loading ? 'Please wait' : error ? error : 'Try a different search query.'}</Text>
           </View>
         )}
         onScroll={(e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -108,7 +143,6 @@ export default function HealthcareScreen() {
             activeOpacity={0.9}
             style={styles.card}
             onPress={() => {
-              // Route all healthcare items (including Veterinary) to hospital-detail for consistent layout
               router.push({ pathname: '/hospital-detail', params: { id: item.id, image: item.image || '' } });
             }}
           >
@@ -117,7 +151,7 @@ export default function HealthcareScreen() {
                 source={
                   item.image && /^https?:\/\//.test(item.image)
                     ? { uri: item.image }
-                    : defaultImage
+                    : { uri: "https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/assets/logo.png" }
                 }
                 style={styles.image}
                 resizeMode="cover"
@@ -189,13 +223,6 @@ const styles = StyleSheet.create({
   searchBar: { flex: 1, flexDirection: "row", alignItems: "center", backgroundColor: "#ffffff", borderRadius: 999, paddingHorizontal: 16, height: 48 },
   searchInput: { flex: 1, fontSize: 16, color: "#111827" },
   filterButton: { width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.3)", marginLeft: 12 },
-  categoryChips: { paddingTop: 12, paddingBottom: 4 },
-  categoryChipsContainer: { backgroundColor: "#ffffff", borderBottomWidth: 1, borderBottomColor: "#e5e7eb" },
-  categoryChipsOuter: { paddingHorizontal: 16, paddingVertical: 12 },
-  catChip: { borderWidth: 1, borderColor: "#e5e7eb", backgroundColor: "#ffffff", paddingHorizontal: 14, height: 40, borderRadius: 20, marginRight: 12, alignItems: "center", justifyContent: "center" },
-  catChipActive: { backgroundColor: "#111827", borderColor: "#111827" },
-  catChipText: { fontWeight: "700", color: "#111827", fontSize: 12 },
-  catChipTextActive: { color: "#ffffff" },
   list: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 36 },
   emptyContainer: { padding: 24, alignItems: "center", justifyContent: "center" },
   emptyIllustrationWrapper: { width: "100%", aspectRatio: 1.2, marginBottom: 12 },
@@ -211,18 +238,7 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 13, color: "#4b5563", marginTop: 4 },
   locationRow: { flexDirection: "row", alignItems: "center", marginTop: 6 },
   locationText: { marginLeft: 6, fontSize: 12, color: "#6b7280" },
-  metaBox: { flexDirection: "row", alignItems: "center", backgroundColor: "#ecfdf5", borderWidth: 1, borderColor: "#bbf7d0", padding: 10, borderRadius: 12, marginTop: 8 },
-  metaText: { marginLeft: 8, color: "#065f46" },
-  offersBox: { display: "none" },
-  offerItem: { fontSize: 12, color: "#374151", marginBottom: 4 },
   offerInline: { fontSize: 12, color: "#374151", marginBottom: 4 },
-  actionsRow: { flexDirection: "row", alignItems: "center", marginTop: 12 },
-  actionBtn: { flex: 1, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center", flexDirection: "row" },
-  callBtn: { borderWidth: 1, borderColor: "#e5e7eb", backgroundColor: "#fff" },
-  bookBtn: { marginLeft: 8, backgroundColor: "#111827" },
-  actionText: { fontWeight: "700", marginLeft: 6 },
   scrollTopFab: { position: "absolute", right: 16, bottom: 72, width: 44, height: 44, borderRadius: 22, backgroundColor: "#111827", alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOpacity: 0.12, shadowOffset: { width: 0, height: 6 }, shadowRadius: 12, elevation: 4 },
   favoriteButton: { position: "absolute", top: 12, left: 12, width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,0.85)", alignItems: "center", justifyContent: "center" },
 });
-
-

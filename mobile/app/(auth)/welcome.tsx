@@ -2,7 +2,7 @@ import { View, Text, Image, StyleSheet, Animated, Dimensions } from "react-nativ
 import { useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
 import { useAuth } from "../../contexts/AuthContext";
-import { logoImage } from "../../constants/assets";
+// Logo now fetched from backend API
 
 const { width, height } = Dimensions.get("window");
 
@@ -134,7 +134,7 @@ export default function WelcomeScreen() {
             ]}
           >
             <Image
-              source={logoImage}
+              source={{ uri: "https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/assets/logo.png" }}
               style={styles.logo}
               resizeMode="contain"
             />

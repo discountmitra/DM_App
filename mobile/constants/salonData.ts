@@ -56,18 +56,4 @@ export const getSalonServicesByCategory = (category: 'men' | 'women' | 'unisex')
   salonServices.filter(s => s.category === category);
 
 // Centralized service categories and pricing used by salon detail UI
-export const serviceCategories = {
-  haircuts: [
-    { name: 'Haircut', original: 130, normal: { discounted: 110, discount: 20 }, vip: { discounted: 99, discount: 31 } },
-    { name: 'Haircut + Shaving', original: 170, normal: { discounted: 150, discount: 20 }, vip: { discounted: 129, discount: 41 } },
-    { name: 'Haircut + Shaving + Head Massage', original: 200, normal: { discounted: 180, discount: 20 }, vip: { discounted: 149, discount: 51 } }
-  ],
-  facial: [
-    { name: 'Facial', original: 200, normal: { discounted: 180, discount: 20 }, vip: { discounted: 149, discount: 51 } },
-    { name: 'De-Tan Treatment', original: 300, normal: { discounted: 270, discount: 30 }, vip: { discounted: 249, discount: 51 } },
-    { name: 'Face Masks & Skin Therapy', original: 500, normal: { discounted: 450, discount: 50 }, vip: { discounted: 399, discount: 101 } }
-  ],
-  tattoo: [
-    { name: 'Tattoo Starting Price', original: 499, normal: { discounted: 449, discount: 10 }, vip: { discounted: 399, discount: 20 } }
-  ]
-} as const;
+// Services selection removed in UI; keep minimal structure for future use if needed

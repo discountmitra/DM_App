@@ -1,7 +1,26 @@
 {
-  "name": "dm",
+  "name": "discount-mitra-mobile",
   "main": "expo-router/entry",
   "version": "1.0.0",
+  "description": "Discount Mitra Mobile App - React Native with Expo",
+  "author": "Discount Mitra Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/discount-mitra.git"
+  },
+  "keywords": [
+    "react-native",
+    "expo",
+    "mobile-app",
+    "discount-app",
+    "service-booking",
+    "typescript"
+  ],
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",

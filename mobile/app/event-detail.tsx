@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -21,12 +21,30 @@ import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
 import { useVip } from '../contexts/VipContext';
 import LikeButton from '../components/common/LikeButton';
 import OfferCards from '../components/common/OfferCards';
-import { defaultImage } from '../constants/assets';
-import { categoryOffers } from '../constants/offerData';
-import { eventData as eventServices } from '../constants/eventsData';
+// Remove dependency on constants/eventsData for events
+type EventServiceType = {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  icon: string;
+  price: string;
+  details?: string;
+  capacity?: string;
+  location?: string;
+  rating: number;
+  reviews: number;
+  availability: string;
+  image?: string;
+  normalUserOffer?: string;
+  vipUserOffer?: string;
+  phone?: string;
+  gallery?: string[];
+};
 import { LinearGradient } from 'expo-linear-gradient';
-import { eventsFaq as faqData } from "../constants/faqData";
+// FAQ data now fetched from backend API
 import EventRequestForm from "../components/events/EventRequestForm";
+import { BASE_URL } from '../constants/api';
 
 type UserType = 'normal' | 'vip';
 
@@ -77,25 +95,65 @@ export default function EventDetailScreen() {
   const viewerListRef = useRef<FlatList<any>>(null);
   const [showPaymentPopup, setShowPaymentPopup] = useState(false);
   const [popupAnim] = useState(new Animated.Value(0));
+  const [faqData, setFaqData] = useState<Array<{question: string; answer: string}>>([]);
+  const [faqLoading, setFaqLoading] = useState(true);
 
+  const [service, setService] = useState<EventServiceType | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const eventData: EventData[] = eventServices.map(s => ({
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await fetch(`${BASE_URL}/events/${encodeURIComponent(eventIdStr)}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        if (isMounted) setService(json as EventServiceType);
+      } catch (e: any) {
+        if (isMounted) setError(e?.message || 'Failed to load');
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    })();
+    return () => { isMounted = false; };
+  }, [eventIdStr]);
+
+  // Fetch FAQ data
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        setFaqLoading(true);
+        const res = await fetch(`${BASE_URL}/faq/events`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        if (alive) setFaqData(json);
+      } catch (e: any) {
+        console.error('Failed to load FAQ:', e);
+        if (alive) setFaqData([]);
+      } finally {
+        if (alive) setFaqLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  // Build the current event view model directly from fetched service
+  const currentEvent: EventData | undefined = service
+    ? {
     Category: 'Events',
-    'Sub-Category': s.category,
-    Name: s.name,
-    description: s.description,
-    'NORMAL USER': s.normalUserOffer || '10% DISCOUNT',
-    'VIP USER': s.vipUserOffer || 'GET UPTO 25% DISCOUNT',
+        'Sub-Category': service.category,
+        Name: service.name,
+        description: service.description,
+        'NORMAL USER': service.normalUserOffer || '10% DISCOUNT',
+        'VIP USER': service.vipUserOffer || 'GET UPTO 25% DISCOUNT',
     Button: 'Request Now',
     reaction: 'Thanks for booking! Our team will contact you in 10 mins',
-  }));
-
-  // Find the specific event data (fallback to first item if not found)
-  const currentEvent = eventData.find(event => {
-    const eventNameSlug = event.Name.toLowerCase().replace(/\s+/g, '-').replace(/[()]/g, '');
-    const eventIdSlug = eventIdStr.toLowerCase().replace(/\s+/g, '-').replace(/[()]/g, '');
-    return eventNameSlug === eventIdSlug;
-  }) || eventData[0];
+      }
+    : undefined;
 
   const handleBooking = () => {
     const newErrors: { name?: string; phone?: string; date?: string; time?: string; venue?: string; service?: string } = {};
@@ -126,8 +184,6 @@ export default function EventDetailScreen() {
   };
 
   const handleCall = async () => {
-    // Find the canonical service entry to access its phone if present
-    const service = eventServices.find(s => s.name === currentEvent.Name && s.category === currentEvent['Sub-Category']);
     const number = (service as any)?.phone as string | undefined;
     if (!number) return;
     const url = `tel:${number}`;
@@ -234,27 +290,48 @@ export default function EventDetailScreen() {
     return days;
   };
 
-  // Function to convert individual offers to array format
-  const convertOffersToArray = (offerText: string) => {
-    if (!offerText) return [];
-    return offerText.split('\n').filter(line => line.trim() !== '');
-  };
 
   const event = useMemo(() => ({
     id: eventIdStr || '',
-    name: currentEvent.Name,
-    category: currentEvent['Sub-Category'],
-    description: currentEvent.description.replace(/[^\w\s\u0C00-\u0C7F₹\/-]/g, '').trim(),
-    rating: 4.8,
-    reviews: 234,
-    normalUserOffer: (params.normalUserOffer as string) || "",
-    vipUserOffer: (params.vipUserOffer as string) || "",
-  }), [currentEvent, eventIdStr, params.normalUserOffer, params.vipUserOffer]);
+    name: service?.name || '',
+    category: service?.category || '',
+    description: (service?.description || '').replace(/[^\w\s\u0C00-\u0C7F₹\/-]/g, '').trim(),
+    rating: service?.rating ?? 4.8,
+    reviews: service?.reviews ?? 234,
+    normalUserOffer: (params.normalUserOffer as string) || service?.normalUserOffer || "",
+    vipUserOffer: (params.vipUserOffer as string) || service?.vipUserOffer || "",
+  }), [service, eventIdStr, params.normalUserOffer, params.vipUserOffer]);
   // Get gallery images from events data
-  const canonicalService = eventServices.find(s => s.name === event.name && s.category === event.category);
-  const serviceGallery = canonicalService?.gallery || [];
+  const serviceGallery = service?.gallery || [];
 
   const currentGalleryImages = serviceGallery;
+
+  // Loading / error states before rendering UI that depends on data
+  if (loading) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8fafc' }}>
+        <ActivityIndicator size="large" color="#e91e63" />
+        <Text style={{ marginTop: 12, color: '#6b7280' }}>Loading event…</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8fafc', padding: 16 }}>
+        <Text style={{ color: '#dc2626', fontWeight: '700' }}>Failed to load</Text>
+        <Text style={{ color: '#6b7280', marginTop: 6 }}>{String(error)}</Text>
+      </View>
+    );
+  }
+
+  if (!service || !currentEvent) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8fafc' }}>
+        <Text style={{ color: '#6b7280' }}>Event not found</Text>
+      </View>
+    );
+  }
   const getItemLayout = (_: any, index: number) => {
     const width = Dimensions.get('window').width;
     return { length: width, offset: width * index, index };
@@ -292,7 +369,7 @@ export default function EventDetailScreen() {
         {/* Hero Section with Background */}
         <View style={styles.heroSection}>
           <Image 
-            source={headerImage && /^https?:\/\//.test(headerImage) ? { uri: headerImage } : defaultImage} 
+            source={headerImage && /^https?:\/\//.test(headerImage) ? { uri: headerImage } : { uri: "https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/assets/logo.png" }} 
             style={styles.heroBackgroundImage}
             resizeMode="cover"
           />
@@ -367,8 +444,6 @@ export default function EventDetailScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Offers & Benefits</Text>
           <OfferCards 
-            normalOffers={event.normalUserOffer ? convertOffersToArray(event.normalUserOffer) : undefined}
-            vipOffers={event.vipUserOffer ? convertOffersToArray(event.vipUserOffer) : undefined}
             category="event"
             serviceType={event.category}
           />
@@ -418,11 +493,106 @@ export default function EventDetailScreen() {
           </View>
           )}
           {event.category !== 'Chef' && event.category !== 'Photography' && (
-            <View style={styles.section}>
+            <View style={[styles.section, styles.formCard]}>
               <Text style={styles.sectionTitle}>Book Your Event</Text>
-              {/* existing booking UI retained for other categories */}
-              {/* Keeping original handler and controls for non-chef/photography */}
-              {/* Minimal duplication: keep as-is for other categories */}
+              <Text style={styles.formSubtitle}>Share a few details and we’ll confirm your booking.</Text>
+
+              <View style={styles.fieldRow}>
+                <Text style={styles.inputLabel}>Your Name</Text>
+                <View style={styles.inputWrapper}>
+                  <Ionicons name="person" size={18} color="#6b7280" style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.inputControl}
+                    placeholder="Enter your name"
+                    value={customerName}
+                    onChangeText={setCustomerName}
+                  />
+                </View>
+                {!!errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
+              </View>
+
+              <View style={styles.fieldRow}>
+                <Text style={styles.inputLabel}>Phone Number</Text>
+                <View style={styles.inputWrapper}>
+                  <Ionicons name="call" size={18} color="#6b7280" style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.inputControl}
+                    placeholder="10-digit phone"
+                    keyboardType="phone-pad"
+                    value={phoneNumber}
+                    onChangeText={setPhoneNumber}
+                    maxLength={10}
+                  />
+                </View>
+                {!!errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
+              </View>
+
+              <View style={styles.inlineRow}>
+                <View style={[styles.fieldRow, { flex: 1 }]}> 
+                  <Text style={styles.inputLabel}>Event Date</Text>
+                  <TouchableOpacity style={[styles.inputWrapper]} onPress={openDatePicker} activeOpacity={0.85}>
+                    <Ionicons name="calendar" size={18} color="#6b7280" style={styles.inputIcon} />
+                    <Text style={[styles.inputControl, { paddingTop: 14 }]}>{eventDate || 'Select a date'}</Text>
+                  </TouchableOpacity>
+                  {!!errors.date && <Text style={styles.errorText}>{errors.date}</Text>}
+                </View>
+                <View style={{ width: 12 }} />
+                <View style={[styles.fieldRow, { flex: 1 }]}> 
+                  <Text style={styles.inputLabel}>Event Time</Text>
+                  <TouchableOpacity style={[styles.inputWrapper]} onPress={() => setShowTimePicker(true)} activeOpacity={0.85}>
+                    <Ionicons name="time" size={18} color="#6b7280" style={styles.inputIcon} />
+                    <Text style={[styles.inputControl, { paddingTop: 14 }]}>{eventTime || 'Select time'}</Text>
+                  </TouchableOpacity>
+                  {!!errors.time && <Text style={styles.errorText}>{errors.time}</Text>}
+                </View>
+              </View>
+
+              <View style={styles.fieldRow}>
+                <Text style={styles.inputLabel}>Venue / Address</Text>
+                <View style={styles.inputWrapper}>
+                  <Ionicons name="location" size={18} color="#6b7280" style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.inputControl}
+                    placeholder="Venue or address"
+                    value={venue}
+                    onChangeText={setVenue}
+                  />
+                </View>
+                {!!errors.venue && <Text style={styles.errorText}>{errors.venue}</Text>}
+              </View>
+
+              <View style={styles.fieldRow}>
+                <Text style={styles.inputLabel}>Service</Text>
+                <TouchableOpacity style={styles.inputWrapper} onPress={() => setShowServicePicker(true)} activeOpacity={0.85}>
+                  <Ionicons name="list" size={18} color="#6b7280" style={styles.inputIcon} />
+                  <Text style={[styles.inputControl, { paddingTop: 14 }]}>{selectedServiceName || 'Select service'}</Text>
+                  <Ionicons name="chevron-forward" size={18} color="#6b7280" style={{ marginRight: 10 }} />
+                </TouchableOpacity>
+                {!!errors.service && <Text style={styles.errorText}>{errors.service}</Text>}
+              </View>
+
+              <View style={styles.fieldRow}>
+                <Text style={styles.inputLabel}>Special Requirements</Text>
+                <View style={[styles.inputWrapper, { height: 110, alignItems: 'flex-start', paddingTop: 12 }]}> 
+                  <Ionicons name="chatbox-ellipses" size={18} color="#6b7280" style={[styles.inputIcon, { marginTop: 2 }]} />
+                  <TextInput
+                    style={[styles.inputControl, { height: '100%' }]}
+                    placeholder="Tell us anything specific (optional)"
+                    value={specialRequirements}
+                    onChangeText={setSpecialRequirements}
+                    multiline
+                  />
+                </View>
+              </View>
+
+              <TouchableOpacity onPress={handleBooking} activeOpacity={0.9}>
+                <LinearGradient colors={['#e11d48', '#ec4899']}
+                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                  style={styles.primaryCta}>
+                  <Ionicons name="calendar" size={18} color="#fff" />
+                  <Text style={styles.primaryCtaText}>Book Now</Text>
+                </LinearGradient>
+              </TouchableOpacity>
           </View>
           )}
         </View>
@@ -430,29 +600,36 @@ export default function EventDetailScreen() {
         {/* FAQ Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Frequently Asked Questions</Text>
-          <View style={styles.faqList}>
-            {faqData.map((faq, index) => (
-              <View key={index} style={styles.faqItem}>
-                <TouchableOpacity 
-                  style={styles.faqHeader}
-                  onPress={() => toggleFAQ(index)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.faqQuestion}>{faq.question}</Text>
-                  <Ionicons 
-                    name={expandedFAQ === index ? "chevron-up" : "chevron-down"} 
-                    size={20} 
-                    color="#6b7280" 
-                  />
-                </TouchableOpacity>
-                {expandedFAQ === index && (
-                  <View style={styles.faqAnswerContainer}>
-                    <Text style={styles.faqAnswer}>{faq.answer}</Text>
-                  </View>
-                )}
-              </View>
-            ))}
-          </View>
+          {faqLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color="#3b82f6" />
+              <Text style={styles.loadingText}>Loading FAQs...</Text>
+            </View>
+          ) : (
+            <View style={styles.faqList}>
+              {faqData.map((faq, index) => (
+                <View key={index} style={styles.faqItem}>
+                  <TouchableOpacity 
+                    style={styles.faqHeader}
+                    onPress={() => toggleFAQ(index)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.faqQuestion}>{faq.question}</Text>
+                    <Ionicons 
+                      name={expandedFAQ === index ? "chevron-up" : "chevron-down"} 
+                      size={20} 
+                      color="#6b7280" 
+                    />
+                  </TouchableOpacity>
+                  {expandedFAQ === index && (
+                    <View style={styles.faqAnswerContainer}>
+                      <Text style={styles.faqAnswer}>{faq.answer}</Text>
+                    </View>
+                  )}
+                </View>
+              ))}
+            </View>
+          )}
         </View>
 
         <View style={{ height: 24 }} />
@@ -962,6 +1139,22 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 1,
   },
+  formCard: { padding: 16, borderWidth: 1, borderColor: '#f3f4f6' },
+  formSubtitle: { fontSize: 12, color: '#6b7280', marginTop: -4, marginBottom: 14 },
+  fieldRow: { marginBottom: 14 },
+  inputWrapper: { 
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e5e7eb',
+    borderRadius: 12, height: 48
+  },
+  inputIcon: { marginLeft: 12, marginRight: 8 },
+  inputControl: { flex: 1, fontSize: 16, color: '#111827', paddingRight: 12 },
+  inlineRow: { flexDirection: 'row' },
+  primaryCta: {
+    height: 52, borderRadius: 12, alignItems: 'center', justifyContent: 'center',
+    flexDirection: 'row', gap: 8
+  },
+  primaryCtaText: { color: '#fff', fontWeight: '700', fontSize: 16 },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 12 },
   userTypeButtons: { flexDirection: 'row', gap: 12 },
   userTypeButton: { flex: 1, paddingVertical: 16, paddingHorizontal: 16, borderRadius: 12, borderWidth: 2, borderColor: '#e5e7eb', alignItems: 'center' },
@@ -992,6 +1185,13 @@ const styles = StyleSheet.create({
   faqQuestion: { fontSize: 16, fontWeight: '600', color: '#111827', flex: 1, marginRight: 12 },
   faqAnswerContainer: { paddingTop: 12, paddingLeft: 4 },
   faqAnswer: { fontSize: 14, color: '#6b7280', lineHeight: 20 },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+    gap: 8,
+  },
   dateInputContainer: { position: 'relative', flexDirection: 'row', alignItems: 'center' },
   dateInput: { flex: 1, borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 12, fontSize: 16, color: '#111827', backgroundColor: '#ffffff', paddingRight: 45 },
   calendarIcon: { position: 'absolute', right: 12 },

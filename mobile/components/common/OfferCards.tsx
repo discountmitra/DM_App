@@ -1,35 +1,68 @@
-import React, { useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, Animated, TouchableOpacity } from 'react-native';
+import React, { useRef, useEffect, useState } from 'react';
+import { View, Text, StyleSheet, Animated, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { serviceOffers, categoryOffers } from '../../constants/offerData';
 import { useVip } from '../../contexts/VipContext';
 import { router } from 'expo-router';
+import { BASE_URL } from '../../constants/api';
 
 interface OfferCardsProps {
   normalOffers?: string[];
   vipOffers?: string[];
-  category: 'hospital' | 'home-service' | 'event' | 'construction' | 'beauty';
+  category: 'hospital' | 'home-service' | 'event' | 'construction' | 'beauty' | 'food' | 'restaurant';
   serviceType?: string;
 }
 
 const OfferCards: React.FC<OfferCardsProps> = ({ normalOffers, vipOffers, category, serviceType }) => {
   const shimmerAnim = useRef(new Animated.Value(0)).current;
+  const [offers, setOffers] = useState<{ normal: string[]; vip: string[] }>({ normal: [], vip: [] });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Get offers based on service type or fallback to category
-  const getOffers = () => {
-    if (normalOffers && vipOffers) {
-      return { normal: normalOffers, vip: vipOffers };
-    }
-    
-    if (serviceType && serviceOffers[category] && serviceOffers[category][serviceType]) {
-      return serviceOffers[category][serviceType];
-    }
-    
-    return categoryOffers[category] || { normal: [], vip: [] };
-  };
+  // Fetch offers from database
+  useEffect(() => {
+    const fetchOffers = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-  const offers = getOffers();
+        // If specific offers are provided, use them
+        if (normalOffers && vipOffers && (normalOffers.length > 0 || vipOffers.length > 0)) {
+          setOffers({ normal: normalOffers, vip: vipOffers });
+          setLoading(false);
+          return;
+        }
+
+        // Fetch from database
+        const url = serviceType 
+          ? `${BASE_URL}/offers/formatted/category/${category}?serviceType=${encodeURIComponent(serviceType)}`
+          : `${BASE_URL}/offers/formatted/category/${category}`;
+        
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch offers: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // Extract offers for the specific service type or use default
+        const serviceKey = serviceType || 'default';
+        const serviceOffers = data[serviceKey] || data.default || { normal: [], vip: [] };
+        
+        setOffers(serviceOffers);
+      } catch (err) {
+        console.error('Error fetching offers:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch offers');
+        // Fallback to empty offers
+        setOffers({ normal: [], vip: [] });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOffers();
+  }, [category, serviceType, normalOffers, vipOffers]);
 
   useEffect(() => {
     Animated.loop(
@@ -52,6 +85,9 @@ const OfferCards: React.FC<OfferCardsProps> = ({ normalOffers, vipOffers, catego
         return type === 'normal' ? 'construct' : 'star';
       case 'beauty':
         return type === 'normal' ? 'flower' : 'star';
+      case 'food':
+      case 'restaurant':
+        return type === 'normal' ? 'restaurant' : 'star';
       default:
         return type === 'normal' ? 'person' : 'star';
     }
@@ -84,6 +120,12 @@ const OfferCards: React.FC<OfferCardsProps> = ({ normalOffers, vipOffers, catego
           normal: ["#dbeafe", "#bfdbfe", "#93c5fd"],
           vip: ["#1a1a1f", "#0f0f14"]
         };
+      case 'food':
+      case 'restaurant':
+        return {
+          normal: ["#fef3c7", "#fde68a", "#fbbf24"],
+          vip: ["#1a1a1f", "#0f0f14"]
+        };
       default:
         return {
           normal: ["#dbeafe", "#bfdbfe", "#93c5fd"],
@@ -104,6 +146,9 @@ const OfferCards: React.FC<OfferCardsProps> = ({ normalOffers, vipOffers, catego
         return '#1e40af';
       case 'beauty':
         return '#1e40af';
+      case 'food':
+      case 'restaurant':
+        return '#d97706';
       default:
         return '#1e40af';
     }
@@ -111,6 +156,10 @@ const OfferCards: React.FC<OfferCardsProps> = ({ normalOffers, vipOffers, catego
 
   const colors = getCategoryColors();
   const textColor = getCategoryTextColor();
+  
+  // Ensure colors are properly typed for LinearGradient
+  const normalColors = colors.normal as [string, string, string];
+  const vipColors = colors.vip as [string, string];
 
   const { isVip } = useVip();
 
@@ -120,11 +169,39 @@ const OfferCards: React.FC<OfferCardsProps> = ({ normalOffers, vipOffers, catego
     }
   };
 
+  if (loading) {
+    return (
+      <View style={styles.offersContainer}>
+        <View style={[styles.offerCard, styles.loadingCard]}>
+          <ActivityIndicator size="large" color="#1e40af" />
+          <Text style={styles.loadingText}>Loading offers...</Text>
+        </View>
+        <View style={[styles.offerCard, styles.loadingCard]}>
+          <ActivityIndicator size="large" color="#fbbf24" />
+          <Text style={styles.loadingText}>Loading offers...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.offersContainer}>
+        <View style={[styles.offerCard, styles.errorCard]}>
+          <Text style={styles.errorText}>Failed to load offers</Text>
+        </View>
+        <View style={[styles.offerCard, styles.errorCard]}>
+          <Text style={styles.errorText}>Failed to load offers</Text>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.offersContainer}>
       {/* Normal User Section */}
       <LinearGradient 
-        colors={colors.normal} 
+        colors={normalColors} 
         start={{ x: 0, y: 0 }} 
         end={{ x: 1, y: 1 }} 
         style={styles.offerCard}
@@ -151,7 +228,7 @@ const OfferCards: React.FC<OfferCardsProps> = ({ normalOffers, vipOffers, catego
       {/* VIP User Section */}
       <TouchableOpacity activeOpacity={0.85} onPress={handleVipPress} style={{ flex: 1 }}>
         <LinearGradient 
-          colors={colors.vip} 
+          colors={vipColors} 
           start={{ x: 0, y: 0 }} 
           end={{ x: 1, y: 1 }} 
           style={styles.offerCard}
@@ -304,6 +381,30 @@ const styles = StyleSheet.create({
     bottom: 0,
     width: 180,
     opacity: 0.6,
+  },
+  loadingCard: {
+    backgroundColor: '#f8fafc',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#64748b',
+    fontWeight: '500',
+  },
+  errorCard: {
+    backgroundColor: '#fef2f2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  errorText: {
+    fontSize: 14,
+    color: '#dc2626',
+    fontWeight: '500',
+    textAlign: 'center',
   },
 });
 

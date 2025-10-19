@@ -1,10 +1,40 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ScrollView, Modal, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useLocalSearchParams, useRouter } from "expo-router";
-import { restaurantData, Restaurant } from "../constants/restaurantData";
 import PayBillCard from "../components/common/PayBillCard";
 import { useVip } from "../contexts/VipContext";
+import { BASE_URL } from "../constants/api";
+
+type Restaurant = {
+  id: string;
+  name: string;
+  category: string;
+  image: string;
+  specialist: string[];
+  menu: any;
+  discounts: {
+    normal_users: string;
+    vip_users: string;
+  };
+  actions: {
+    book_table: string;
+  };
+  offers: {
+    cashback: string;
+    payment: string;
+  };
+  photos: string[];
+  rating: number;
+  reviews: number;
+  distance: string;
+  phone: string;
+  openTime: string;
+  area: string;
+  priceForTwo: string;
+  opensIn: string;
+  savePercent?: number;
+};
 
 export default function DineOutScreen() {
   const navigation = useNavigation();
@@ -12,11 +42,27 @@ export default function DineOutScreen() {
   const params = useLocalSearchParams();
   const { isVip, userMode } = useVip();
   const [billAmount, setBillAmount] = useState('');
+  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Get restaurant data from params
-  const restaurant: Restaurant = useMemo(() => {
-    const restaurantId = params.restaurantId as string;
-    return restaurantData.find(r => r.id === restaurantId) || restaurantData[0];
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await fetch(`${BASE_URL}/restaurants/${params.restaurantId}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        if (alive) setRestaurant(json as Restaurant);
+      } catch (e: any) {
+        if (alive) setError(e?.message || 'Failed to load');
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => { alive = false; };
   }, [params.restaurantId]);
 
   // Define discount percentages for normal and VIP users
@@ -53,6 +99,32 @@ export default function DineOutScreen() {
       setShowSuccess(true);
     }, 1500);
   };
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#7c3aed" />
+          <Text style={styles.loadingText}>Loading restaurant details...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (error || !restaurant) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle" size={48} color="#ef4444" />
+          <Text style={styles.errorTitle}>Failed to load</Text>
+          <Text style={styles.errorSubtitle}>{error || 'Restaurant not found'}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={() => router.back()}>
+            <Text style={styles.retryButtonText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -845,4 +917,47 @@ const styles = StyleSheet.create({
   successModalSubtitle: { fontSize: 14, color: '#6b7280', textAlign: 'center', marginBottom: 20 },
   successButton: { paddingVertical: 14, borderRadius: 10, backgroundColor: '#10b981', alignItems: 'center' },
   successButtonText: { fontSize: 15, fontWeight: '700', color: '#ffffff' },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#6b7280',
+    fontWeight: '500',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    padding: 24,
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  errorSubtitle: {
+    fontSize: 14,
+    color: '#6b7280',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  retryButton: {
+    backgroundColor: '#7c3aed',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
 });
