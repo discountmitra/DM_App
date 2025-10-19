@@ -1,8 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useVip } from '../../contexts/VipContext';
-import { getVipPrice } from '../../contexts/VipContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface VipPricingProps {
   basePrice: number;
@@ -19,8 +18,19 @@ export default function VipPricing({
   serviceName = "service",
   showRequestButton = true 
 }: VipPricingProps) {
-  const { userMode, isVip } = useVip();
-  const pricing = getVipPrice(basePrice, isVip, vipDiscount);
+  const { authState } = useAuth();
+  
+  // Determine user mode based on authentication
+  const isVip = authState.user?.isVip || false;
+  const userMode = isVip ? 'vip' : 'normal';
+  
+  // Calculate pricing locally
+  const vipPrice = Math.round(basePrice * (1 - vipDiscount));
+  const pricing = {
+    normal: basePrice,
+    vip: vipPrice,
+    savings: basePrice - vipPrice
+  };
 
   const handleRequestPress = () => {
     if (onRequestPress) {

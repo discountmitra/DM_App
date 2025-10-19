@@ -4,7 +4,7 @@ import { FontSizes, FontWeights } from "../theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import LikeButton from "../components/common/LikeButton";
-import { useVip } from "../contexts/VipContext";
+import { useAuth } from "../contexts/AuthContext";
 import PayBillCard from "../components/common/PayBillCard";
 // Default image URL for fallback
 import { BASE_URL } from "../constants/api";
@@ -30,7 +30,11 @@ export default function ShoppingDetailScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
   const navigation = useNavigation();
-  const { userMode, isVip } = useVip();
+  const { authState } = useAuth();
+  
+  // Determine user mode based on authentication
+  const isVip = authState.user?.isVip || false;
+  const userMode = isVip ? 'vip' : 'normal';
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);

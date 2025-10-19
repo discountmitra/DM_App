@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useVip } from '../../contexts/VipContext';
+import { useAuth } from '../../contexts/AuthContext';
 import VipPricing from './VipPricing';
 
 interface VipServiceCardProps {
@@ -25,7 +25,11 @@ export default function VipServiceCard({
   onPress,
   onRequestPress
 }: VipServiceCardProps) {
-  const { userMode } = useVip();
+  const { authState } = useAuth();
+  
+  // Determine user mode based on authentication
+  const isVip = authState.user?.isVip || false;
+  const userMode = isVip ? 'vip' : 'normal';
 
   return (
     <TouchableOpacity 

@@ -16,7 +16,7 @@ import { useLocalSearchParams, useRouter, useNavigation } from "expo-router";
 import { BASE_URL } from "../constants/api";
 // Default image URL for fallback
 import { useState, useMemo, useRef, useEffect } from "react";
-import { useVip } from "../contexts/VipContext";
+import { useAuth } from "../contexts/AuthContext";
 import LikeButton from "../components/common/LikeButton";
 import { LinearGradient } from 'expo-linear-gradient';
 import OfferCards from "../components/common/OfferCards";
@@ -26,7 +26,11 @@ export default function HospitalDetailScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
   const navigation = useNavigation();
-  const { userMode, isVip } = useVip();
+  const { authState } = useAuth();
+  
+  // Determine user mode based on authentication
+  const isVip = authState.user?.isVip || false;
+  const userMode = isVip ? 'vip' : 'normal';
   const hospitalId = (params.id as string) || "";
   const headerImage = typeof params.image === 'string' ? (params.image as string) : "";
   const [hospital, setHospital] = useState<any | null>(null);

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { FontWeights } from '../../theme';
 import { Ionicons } from '@expo/vector-icons';
-import { useVip } from '../../contexts/VipContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
 
 interface ServiceActionButtonProps {
@@ -22,7 +22,11 @@ export default function ServiceActionButton({
   buttonText,
   style 
 }: ServiceActionButtonProps) {
-  const { userMode, isVip } = useVip();
+  const { authState } = useAuth();
+  
+  // Determine user mode based on authentication
+  const isVip = authState.user?.isVip || false;
+  const userMode = isVip ? 'vip' : 'normal';
   const [showPaymentPopup, setShowPaymentPopup] = useState(false);
   const [popupAnim] = useState(new Animated.Value(0));
 

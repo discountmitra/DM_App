@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Animated, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useVip } from '../../contexts/VipContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { router } from 'expo-router';
 import { BASE_URL } from '../../constants/api';
 
@@ -156,7 +156,10 @@ const OfferCards: React.FC<OfferCardsProps> = ({ normalOffers, vipOffers, catego
   const normalColors = colors.normal as [string, string, string];
   const vipColors = colors.vip as [string, string];
 
-  const { isVip } = useVip();
+  const { authState } = useAuth();
+  
+  // Determine user mode based on authentication
+  const isVip = authState.user?.isVip || false;
 
   const handleVipPress = () => {
     if (!isVip) {

@@ -6,7 +6,6 @@ import { useNavigation, useRouter } from "expo-router";
 import { useEffect } from "react";
 import { useFavorites } from "../../contexts/FavoritesContext";
 import { LinearGradient } from 'expo-linear-gradient';
-import { useVip } from "../../contexts/VipContext";
 import { useAuth } from "../../contexts/AuthContext";
 // Logo now fetched from backend API
 
@@ -15,8 +14,11 @@ export default function ProfileScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const { favorites } = useFavorites();
-  const { userMode } = useVip();
   const { authState } = useAuth();
+  
+  // Determine user mode based on authentication
+  const isVip = authState.user?.isVip || false;
+  const userMode = isVip ? 'vip' : 'normal';
 
   useEffect(() => {
     navigation.setOptions({ headerShown: false }); // Hide default header

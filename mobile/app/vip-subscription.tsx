@@ -2,14 +2,73 @@ import { useEffect, useRef, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, LayoutAnimation, Modal, ActivityIndicator, Animated, TouchableWithoutFeedback, TextInput } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRouter } from "expo-router";
-import { useVip, SUBSCRIPTION_PLANS, SubscriptionPlan } from "../contexts/VipContext";
+import { useAuth } from "../contexts/AuthContext";
 import { LinearGradient } from 'expo-linear-gradient';
-// Removed gradient pill usage for price; showing gold text instead
+import subscriptionService from '../services/subscriptionService';
+
+// Define subscription plan type
+type SubscriptionPlan = {
+  id: string;
+  name: string;
+  price: number;
+  originalPrice: number;
+  duration: string;
+  features: string[];
+};
+
+// Define subscription plans locally
+const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
+  {
+    id: "monthly",
+    name: "Monthly",
+    price: 99,
+    originalPrice: 199,
+    duration: "1 month",
+    features: [
+      "Unlimited service requests",
+      "Priority customer support",
+      "Exclusive VIP discounts",
+      "Free premium services",
+      "24/7 dedicated support"
+    ]
+  },
+  {
+    id: "quarterly",
+    name: "Quarterly",
+    price: 249,
+    originalPrice: 597,
+    duration: "3 months",
+    features: [
+      "Unlimited service requests",
+      "Priority customer support",
+      "Exclusive VIP discounts",
+      "Free premium services",
+      "24/7 dedicated support"
+    ]
+  },
+  {
+    id: "yearly",
+    name: "Yearly",
+    price: 799,
+    originalPrice: 2388,
+    duration: "12 months",
+    features: [
+      "Unlimited service requests",
+      "Priority customer support",
+      "Exclusive VIP discounts",
+      "Free premium services",
+      "24/7 dedicated support"
+    ]
+  }
+];
 
 export default function VipSubscriptionScreen() {
   const router = useRouter();
   const navigation = useNavigation();
-  const { isVip, subscription, subscribeToPlan, cancelSubscription, getSubscriptionStatus } = useVip();
+  const { authState, refreshUserData } = useAuth();
+  
+  // Determine user mode based on authentication
+  const isVip = authState.user?.isVip || false;
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set(["quarterly"]));
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -20,7 +79,11 @@ export default function VipSubscriptionScreen() {
   const [couponError, setCouponError] = useState<string | null>(null);
   const [couponDiscountPct, setCouponDiscountPct] = useState(0);
 
-  const subscriptionStatus = getSubscriptionStatus();
+  // Simplified subscription status for demo
+  const subscriptionStatus = {
+    planName: isVip ? "VIP Member" : "Normal User",
+    daysRemaining: isVip ? 365 : 0
+  };
   const shimmerAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -67,16 +130,22 @@ export default function VipSubscriptionScreen() {
       const appliedPct = couponApplied ? (couponDiscountPct || pct) : 0;
       const finalPrice = Math.max(0, Math.round(selectedPlan.price * (1 - appliedPct)));
 
-      const success = await subscribeToPlan(selectedPlan.id, {
-        couponCode: isValidCoupon ? normalized : undefined,
-        discountPct: isValidCoupon ? appliedPct : undefined,
-        finalPrice,
+      // Real subscription process
+      const result = await subscriptionService.purchaseSubscription({
+        planId: selectedPlan.id,
+        planName: selectedPlan.name,
+        amountPaid: finalPrice,
+        originalPrice: selectedPlan.originalPrice,
+        discountApplied: appliedPct,
+        couponCode: isValidCoupon ? normalized : undefined
       });
-      if (success) {
-        setIsLoading(false);
-        // Success popup will be shown by UserModeToggle component
-        router.back();
-      }
+
+      setIsLoading(false);
+      console.log('Subscription completed:', result);
+      
+      // Refresh user data to update VIP status
+      await refreshUserData();
+      router.back();
     } catch (error) {
       setIsLoading(false);
       console.error('Subscription failed:', error);
@@ -92,11 +161,14 @@ export default function VipSubscriptionScreen() {
     setIsLoading(true);
 
     try {
-      const success = await cancelSubscription();
-      if (success) {
-        setIsLoading(false);
-        // User is now back to normal mode
-      }
+      // Real cancellation process
+      const result = await subscriptionService.cancelSubscription('User requested cancellation');
+      setIsLoading(false);
+      console.log('Subscription cancelled:', result);
+      
+      // Refresh user data to update VIP status
+      await refreshUserData();
+      router.back();
     } catch (error) {
       setIsLoading(false);
       console.error('Cancellation failed:', error);

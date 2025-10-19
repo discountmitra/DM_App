@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Modal, ActivityIndicator, Animated, TouchableWithoutFeedback } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useVip } from '../../contexts/VipContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 type CommonProps = {
   title: string;
@@ -19,7 +19,11 @@ type PhotographyConfig = {
 type Props = CommonProps & (ChefConfig | PhotographyConfig);
 
 export default function EventRequestForm(props: Props) {
-  const { userMode } = useVip();
+  const { authState } = useAuth();
+  
+  // Determine user mode based on authentication
+  const isVip = authState.user?.isVip || false;
+  const userMode = isVip ? 'vip' : 'normal';
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
 

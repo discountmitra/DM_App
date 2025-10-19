@@ -15,14 +15,18 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRouter } from 'expo-router';
-import { useVip } from '../contexts/VipContext';
+import { useAuth } from '../contexts/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
 // FAQ data now fetched from backend API
 
 export default function OthersDetailScreen() {
   const navigation = useNavigation();
   const router = useRouter();
-  const { userMode, isVip } = useVip();
+  const { authState } = useAuth();
+  
+  // Determine user mode based on authentication
+  const isVip = authState.user?.isVip || false;
+  const userMode = isVip ? 'vip' : 'normal';
   const [showStickyHeader, setShowStickyHeader] = useState(false);
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
   const [showPaymentPopup, setShowPaymentPopup] = useState(false);

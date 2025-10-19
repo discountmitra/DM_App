@@ -3,19 +3,22 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Header from "@/components/home/Header";
 import DealCard from "../../components/home/DealCard";
 import CategoryPreview from "../../components/home/CategoryPreview";
-import UserModeToggle from "../../components/common/UserModeToggle";
 import { Spacing, Colors } from "../../theme";
 import { useNavigation, useRouter } from "expo-router";
 import { useEffect } from "react";
 import CustomTopBar from "@/components/home/CustomTopBar";
 import { Ionicons } from "@expo/vector-icons";
-import { useVip } from "../../contexts/VipContext";
+import { useAuth } from "../../contexts/AuthContext";
 // VIP banner now fetched from backend API
 
 export default function HomeScreen() {
   const navigation = useNavigation();
   const router = useRouter();
-  const { isVip, userMode } = useVip();
+  const { authState } = useAuth();
+  
+  // Determine user mode based on authentication
+  const isVip = authState.user?.isVip || false;
+  const userMode = isVip ? 'vip' : 'normal';
 
   useEffect(() => {
     navigation.setOptions({ headerShown: false }); // Hide default header
@@ -33,11 +36,6 @@ export default function HomeScreen() {
         end={{ x: 1, y: 1 }}
         style={styles.pageGradient}
       >
-        {/* VIP Toggle - Moved to top */}
-        <UserModeToggle onModeChange={(mode) => {
-          console.log('Mode changed to:', mode);
-        }} />
-
         {/* Greeting + Search */}
         <CustomTopBar />
 

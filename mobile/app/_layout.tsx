@@ -1,7 +1,6 @@
 import 'react-native-reanimated';
 import { Stack } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { VipProvider } from "../contexts/VipContext";
 import { FavoritesProvider } from "../contexts/FavoritesContext";
 import { AuthProvider, useAuth } from "../contexts/AuthContext";
 import { useFonts } from 'expo-font';
@@ -29,11 +28,9 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <VipProvider>
-          <FavoritesProvider>
-            <AppNavigator />
-          </FavoritesProvider>
-        </VipProvider>
+        <FavoritesProvider>
+          <AppNavigator />
+        </FavoritesProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );

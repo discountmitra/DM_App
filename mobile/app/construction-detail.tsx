@@ -2,7 +2,7 @@ import { useMemo, useRef, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Image, Modal, ActivityIndicator, Animated, TouchableWithoutFeedback, Dimensions, FlatList, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import { useVip } from '../contexts/VipContext';
+import { useAuth } from '../contexts/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import LikeButton from '../components/common/LikeButton';
 import OfferCards from '../components/common/OfferCards';
@@ -31,7 +31,11 @@ export default function ConstructionDetailScreen() {
   const navigation = useNavigation();
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { userMode, isVip } = useVip();
+  const { authState } = useAuth();
+  
+  // Determine user mode based on authentication
+  const isVip = authState.user?.isVip || false;
+  const userMode = isVip ? 'vip' : 'normal';
   const { constructionId } = params as { constructionId: string };
   const headerImage = typeof params.image === 'string' ? (params.image as string) : '';
 

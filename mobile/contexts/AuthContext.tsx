@@ -122,8 +122,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const refreshUserData = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) return;
+      
+      const res = await fetch(`${BASE_URL}/auth/me`, { 
+        headers: { Authorization: `Bearer ${token}` } 
+      });
+      if (!res.ok) throw new Error('Failed to refresh user data');
+      
+      const json = await res.json();
+      await AsyncStorage.setItem('user', JSON.stringify(json.user));
+      setAuthState(prev => ({ ...prev, user: json.user }));
+    } catch (error) {
+      console.error('Failed to refresh user data:', error);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ authState, register, requestOtp, verifyOtp, logout }}>
+    <AuthContext.Provider value={{ authState, register, requestOtp, verifyOtp, logout, refreshUserData }}>
       {children}
     </AuthContext.Provider>
   );

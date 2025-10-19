@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ScrollView,
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useLocalSearchParams, useRouter } from "expo-router";
 import PayBillCard from "../components/common/PayBillCard";
-import { useVip } from "../contexts/VipContext";
+import { useAuth } from "../contexts/AuthContext";
 import { BASE_URL } from "../constants/api";
 
 type Restaurant = {
@@ -40,7 +40,11 @@ export default function DineOutScreen() {
   const navigation = useNavigation();
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { isVip, userMode } = useVip();
+  const { authState } = useAuth();
+  
+  // Determine user mode based on authentication
+  const isVip = authState.user?.isVip || false;
+  const userMode = isVip ? 'vip' : 'normal';
   const [billAmount, setBillAmount] = useState('');
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [loading, setLoading] = useState(true);

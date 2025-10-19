@@ -7,6 +7,8 @@ const User = sequelize.define('User', {
   phone: { type: DataTypes.STRING(20), allowNull: false, unique: true },
   email: { type: DataTypes.STRING(160), allowNull: true, unique: true },
   isVip: { type: DataTypes.BOOLEAN, defaultValue: false },
+  vipExpiresAt: { type: DataTypes.DATE, allowNull: true },
+  currentSubscriptionId: { type: DataTypes.INTEGER, allowNull: true },
 }, {
   tableName: 'users',
   timestamps: true,

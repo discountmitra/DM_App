@@ -18,7 +18,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
-import { useVip } from '../contexts/VipContext';
+import { useAuth } from '../contexts/AuthContext';
 import LikeButton from '../components/common/LikeButton';
 import OfferCards from '../components/common/OfferCards';
 // Remove dependency on constants/eventsData for events
@@ -64,7 +64,11 @@ export default function EventDetailScreen() {
   const navigation = useNavigation();
   const params = useLocalSearchParams();
   const { eventId } = params;
-  const { userMode } = useVip();
+  const { authState } = useAuth();
+  
+  // Determine user mode based on authentication
+  const isVip = authState.user?.isVip || false;
+  const userMode = isVip ? 'vip' : 'normal';
   const eventIdStr = Array.isArray(eventId) ? (eventId?.[0] ?? '') : (eventId ?? '');
   const headerImage = typeof params.image === 'string' ? (params.image as string) : '';
   

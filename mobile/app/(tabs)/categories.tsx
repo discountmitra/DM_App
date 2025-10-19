@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from 'expo-linear-gradient';
-import { useVip } from "../../contexts/VipContext";
+import { useAuth } from "../../contexts/AuthContext";
 import { categories } from "../../constants/categoriesData";
 
 
@@ -16,7 +16,11 @@ export default function CategoriesScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredCategories, setFilteredCategories] = useState(categories);
-  const { userMode } = useVip();
+  const { authState } = useAuth();
+  
+  // Determine user mode based on authentication
+  const isVip = authState.user?.isVip || false;
+  const userMode = isVip ? 'vip' : 'normal';
 
   useEffect(() => {
     navigation.setOptions({ headerShown: false }); // Hide default header
