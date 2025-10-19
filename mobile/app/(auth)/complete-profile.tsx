@@ -9,7 +9,7 @@ import { useAuth } from "../../contexts/AuthContext";
 export default function CompleteProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { completeProfile } = useAuth();
+  const { register } = useAuth();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -45,7 +45,7 @@ export default function CompleteProfileScreen() {
     setPhoneNumber(cleanedText);
   };
 
-  const handleDone = () => {
+  const handleDone = async () => {
     if (!firstName.trim() || !lastName.trim() || !email.trim() || !phoneNumber.trim()) {
       Alert.alert("Error", "Please fill in all fields");
       return;
@@ -61,9 +61,12 @@ export default function CompleteProfileScreen() {
       return;
     }
 
-    // Complete profile and navigate to main app
-    const fullName = `${firstName} ${lastName}`.trim();
-    completeProfile(fullName);
+    try {
+      const fullName = `${firstName} ${lastName}`.trim();
+      await register(fullName, `+91${phoneNumber}`, email);
+    } catch (e: any) {
+      Alert.alert('Error', e?.message || 'Failed to register');
+    }
   };
 
   return (

@@ -5,15 +5,18 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
+import { useLocalSearchParams } from "expo-router";
 
 export default function VerifyPhoneScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { login } = useAuth();
+  const { verifyOtp } = useAuth();
+  const params = useLocalSearchParams();
+  const phone = (Array.isArray(params.phone) ? params.phone[0] : params.phone) as string | undefined;
   const [otp, setOtp] = useState(["", "", "", ""]);
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const [isVerifying, setIsVerifying] = useState(false);
-  const verifyTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const verifyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Auto-verify when 4 digits are entered
   useEffect(() => {
@@ -25,16 +28,16 @@ export default function VerifyPhoneScreen() {
       if (verifyTimerRef.current) {
         clearTimeout(verifyTimerRef.current);
       }
-        verifyTimerRef.current = setTimeout(() => {
-          // Simulate OTP verification and login
-          // In production, this would verify the OTP with a backend service
-          // For now, we'll use a placeholder phone number
-          const phoneNumber = "1234567890"; // This should come from route params or user input
-          login(phoneNumber);
-          // Don't navigate here - let the auth state change handle navigation
-          // Safety: reset verifying after login
-          setTimeout(() => setIsVerifying(false), 1200);
-        }, 1000);
+        verifyTimerRef.current = setTimeout(async () => {
+          try {
+            if (!phone) throw new Error('Missing phone');
+            await verifyOtp(phone, otpString);
+          } catch (e) {
+            // allow button retry
+          } finally {
+            setTimeout(() => setIsVerifying(false), 800);
+          }
+        }, 600);
     }
     return () => {
       if (verifyTimerRef.current) {
@@ -68,7 +71,7 @@ export default function VerifyPhoneScreen() {
     }
   };
 
-  const handleVerify = () => {
+  const handleVerify = async () => {
     const otpString = otp.join("");
     if (otpString.length === 4) {
       if (!isVerifying) {
@@ -78,10 +81,12 @@ export default function VerifyPhoneScreen() {
         if (verifyTimerRef.current) {
           clearTimeout(verifyTimerRef.current);
         }
-        verifyTimerRef.current = setTimeout(() => {
-          // Don't navigate here - let the auth state change handle navigation
-          setTimeout(() => setIsVerifying(false), 1200);
-        }, 1000);
+        try {
+          if (!phone) throw new Error('Missing phone');
+          await verifyOtp(phone, otpString);
+        } finally {
+          setTimeout(() => setIsVerifying(false), 800);
+        }
       }
     }
   };
@@ -100,7 +105,7 @@ export default function VerifyPhoneScreen() {
       {/* Main Content */}
       <View style={styles.content}>
         <Text style={styles.instructionText}>
-          We sent a verification code to +16502137390
+          We sent a verification code to {phone || 'your number'}
         </Text>
 
         {/* OTP Input Fields */}
@@ -108,7 +113,7 @@ export default function VerifyPhoneScreen() {
           {otp.map((digit, index) => (
             <TextInput
               key={index}
-              ref={(ref) => (inputRefs.current[index] = ref)}
+              ref={(ref) => { inputRefs.current[index] = ref; }}
               style={styles.otpInput}
               value={digit}
               onChangeText={(value) => handleOtpChange(value, index)}
@@ -191,9 +196,11 @@ const styles = StyleSheet.create({
   },
   otpContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "center",
+    alignItems: "center",
     width: "100%",
-    maxWidth: 280,
+    maxWidth: 240,
+    gap: 16,
   },
   otpInput: {
     width: 60,
@@ -201,11 +208,13 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#10B981",
     borderRadius: 12,
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "600",
     color: Colors.primary,
     backgroundColor: "#fff",
     textAlign: "center",
+    alignItems: "center",
+    justifyContent: "center",
   },
   verifyingContainer: {
     flexDirection: "row",
@@ -233,3 +242,4 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
 });
+

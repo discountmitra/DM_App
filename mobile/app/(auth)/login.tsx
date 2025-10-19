@@ -5,13 +5,15 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
+import { BASE_URL } from "../../constants/api";
 
 export default function LoginScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { login } = useAuth();
+  const { requestOtp } = useAuth();
   const [phoneNumber, setPhoneNumber] = useState("");
   const [phoneError, setPhoneError] = useState("");
+  const [loginError, setLoginError] = useState("");
 
   const handlePhoneChange = (text: string) => {
     // Remove any non-digit characters
@@ -25,9 +27,10 @@ export default function LoginScreen() {
     }
     
     setPhoneNumber(cleanedText);
+    setLoginError(""); // Clear login error when user types
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (!phoneNumber.trim()) {
       Alert.alert("Error", "Please enter your phone number");
       return;
@@ -43,8 +46,19 @@ export default function LoginScreen() {
       return;
     }
 
-    // Navigate to OTP verification screen
-    router.push("/verify-phone");
+    setLoginError(""); // Clear any previous error
+
+    try {
+      await requestOtp(`+91${phoneNumber}`);
+      router.push({ pathname: "/verify-phone", params: { phone: `+91${phoneNumber}` } });
+    } catch (e: any) {
+      // Check if it's a "User not found" error
+      if (e?.message?.includes("User not found") || e?.message?.includes("404")) {
+        setLoginError("No account found with this number, please register");
+      } else {
+        setLoginError(e?.message || "Failed to send OTP");
+      }
+    }
   };
 
   const handleRegister = () => {
@@ -68,7 +82,7 @@ export default function LoginScreen() {
         {/* Phone Number Field */}
         <View style={styles.fieldContainer}>
           <TextInput
-            style={[styles.input, phoneError ? styles.inputError : null]}
+            style={[styles.input, (phoneError || loginError) ? styles.inputError : null]}
             placeholder="Phone number"
             value={phoneNumber}
             onChangeText={handlePhoneChange}
@@ -76,6 +90,7 @@ export default function LoginScreen() {
             maxLength={10}
           />
           {phoneError ? <Text style={styles.errorText}>{phoneError}</Text> : null}
+          {loginError ? <Text style={styles.errorText}>{loginError}</Text> : null}
         </View>
 
         {/* Continue Button */}
@@ -189,3 +204,4 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 });
+

@@ -31,7 +31,7 @@ export default function ProfileScreen() {
       showsVerticalScrollIndicator={false}
     >
       <LinearGradient
-        colors={userMode === 'vip' ? ["#ffd88a", "#ffffff", "#f6f9ff"] : ["#cfe4ff", "#ffffff", "#f6f9ff"]}
+        colors={authState.user?.isVip ? ["#ffd88a", "#ffffff", "#f6f9ff"] : ["#cfe4ff", "#ffffff", "#f6f9ff"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={{ flex: 1 }}
@@ -40,7 +40,7 @@ export default function ProfileScreen() {
       <View style={[styles.topSection, { paddingTop: insets.top + 12 }]}>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <Text style={styles.userName}>{authState.user?.name || "User"}</Text>
-          {userMode === 'vip' && (
+          {authState.user?.isVip && (
             <View style={styles.vipBadge}>
               <Ionicons name="star" size={12} color="#fff" />
               <Text style={styles.vipBadgeText}>VIP</Text>
@@ -69,21 +69,21 @@ export default function ProfileScreen() {
         <View style={styles.userInfoRow}>
           <View style={styles.userInfoItem}>
             <Text style={styles.userInfoLabel}>Email</Text>
-            <Text style={styles.userInfoValue}>joshua.smith@email.com</Text>
+            <Text style={styles.userInfoValue}>{authState.user?.email || "Not provided"}</Text>
           </View>
           <View style={styles.userInfoItem}>
             <Text style={styles.userInfoLabel}>Phone</Text>
-            <Text style={styles.userInfoValue}>+1 (555) 123-4567</Text>
+            <Text style={styles.userInfoValue}>{authState.user?.phone || "Not provided"}</Text>
           </View>
         </View>
         <View style={styles.userInfoRow}>
           <View style={styles.userInfoItem}>
-            <Text style={styles.userInfoLabel}>Location</Text>
-            <Text style={styles.userInfoValue}>New York, NY</Text>
+            <Text style={styles.userInfoLabel}>Account Type</Text>
+            <Text style={styles.userInfoValue}>{authState.user?.isVip ? "VIP" : "Normal"}</Text>
           </View>
           <View style={styles.userInfoItem}>
-            <Text style={styles.userInfoLabel}>Member Since</Text>
-            <Text style={styles.userInfoValue}>Jan 2024</Text>
+            <Text style={styles.userInfoLabel}>User ID</Text>
+            <Text style={styles.userInfoValue}>#{authState.user?.id || "N/A"}</Text>
           </View>
         </View>
       </View>
@@ -128,10 +128,10 @@ export default function ProfileScreen() {
 
       {/* Account Settings Options */}
       <LinearGradient
-        colors={userMode === 'vip' ? ["#ffffff", "#f8fafc"] : ["#ffffff", "#f8fafc"]}
+        colors={authState.user?.isVip ? ["#ffffff", "#f8fafc"] : ["#ffffff", "#f8fafc"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
-        style={[styles.settingsContainer, userMode === 'vip' ? styles.vipOutline : undefined]}
+        style={[styles.settingsContainer, authState.user?.isVip ? styles.vipOutline : undefined]}
       >
 
 

@@ -2,12 +2,12 @@ const { Sequelize, DataTypes } = require('sequelize');
 
 // Source DB (old): default 'postgres'
 const source = new Sequelize(
-  process.env.PGSOURCEDB || 'postgres',
-  process.env.PGUSER || 'postgres',
-  process.env.PGPASSWORD || 'root5',
+  process.env.PGSOURCEDB,
+  process.env.PGUSER ,
+  process.env.PGPASSWORD ,
   {
-    host: process.env.PGHOST || '127.0.0.1',
-    port: process.env.PGPORT || 5432,
+    host: process.env.PGHOST ,
+    port: process.env.PGPORT ,
     dialect: 'postgres',
     logging: false,
   }
@@ -15,12 +15,12 @@ const source = new Sequelize(
 
 // Target DB (new): 'dm_app'
 const target = new Sequelize(
-  process.env.PGDATABASE || 'dm_app',
-  process.env.PGUSER || 'postgres',
-  process.env.PGPASSWORD || 'root5',
+  process.env.PGDATABASE ,
+  process.env.PGUSER ,
+  process.env.PGPASSWORD ,
   {
-    host: process.env.PGHOST || '127.0.0.1',
-    port: process.env.PGPORT || 5432,
+    host: process.env.PGHOST ,
+    port: process.env.PGPORT ,
     dialect: 'postgres',
     logging: false,
   }

@@ -12,6 +12,7 @@ const shoppingRouter = require('./routes/shopping');
 const faqRouter = require('./routes/faq');
 const assetsRouter = require('./routes/assets');
 const offersRouter = require('./routes/offers');
+const authRouter = require('./routes/auth');
 
 const app = express();
 app.use(cors());
@@ -31,6 +32,7 @@ app.use('/shopping', shoppingRouter);
 app.use('/faq', faqRouter);
 app.use('/assets', assetsRouter);
 app.use('/offers', offersRouter);
+app.use('/auth', authRouter);
 
 const PORT = process.env.PORT ;
 

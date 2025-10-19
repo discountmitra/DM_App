@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
+import { BASE_URL } from '../constants/api';
 
 type AuthState = {
   isAuthenticated: boolean;
@@ -8,14 +9,17 @@ type AuthState = {
   user: {
     phone: string;
     name?: string;
+    email?: string;
+    isVip?: boolean;
   } | null;
 };
 
 type AuthContextType = {
   authState: AuthState;
-  login: (phone: string, name?: string) => Promise<void>;
+  register: (name: string, phone: string, email?: string) => Promise<void>;
+  requestOtp: (phone: string) => Promise<void>;
+  verifyOtp: (phone: string, code: string) => Promise<void>;
   logout: () => Promise<void>;
-  completeProfile: (name: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,8 +38,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const checkAuthState = async () => {
     try {
+      const token = await AsyncStorage.getItem('token');
       const userData = await AsyncStorage.getItem('user');
-      if (userData) {
+      if (token && userData) {
+        // Optionally verify token with backend
+        try {
+          const res = await fetch(`${BASE_URL}/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
+          if (!res.ok) throw new Error('Invalid token');
+          const json = await res.json();
+          await AsyncStorage.setItem('user', JSON.stringify(json.user));
+        } catch {}
         const user = JSON.parse(userData);
         setAuthState({
           isAuthenticated: true,
@@ -59,45 +71,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const login = async (phone: string, name?: string) => {
-    try {
-      const userData = { phone, name };
-      await AsyncStorage.setItem('user', JSON.stringify(userData));
-      setAuthState({
-        isAuthenticated: true,
-        isLoading: false,
-        user: userData,
-      });
-      // Navigate to tabs after successful login
-      router.replace('/(tabs)');
-    } catch (error) {
-      console.error('Error during login:', error);
+  const register = async (name: string, phone: string, email?: string) => {
+    const res = await fetch(`${BASE_URL}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, phone, email })
+    });
+    if (!res.ok) throw new Error('Failed to register');
+    const json = await res.json();
+    await AsyncStorage.setItem('token', json.token);
+    await AsyncStorage.setItem('user', JSON.stringify(json.user));
+    setAuthState({ isAuthenticated: true, isLoading: false, user: json.user });
+    router.replace('/(tabs)');
+  };
+
+  const requestOtp = async (phone: string) => {
+    const res = await fetch(`${BASE_URL}/auth/otp/request`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone })
+    });
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to request OTP');
     }
   };
 
-  const completeProfile = async (name: string) => {
-    try {
-      const userData = { ...authState.user!, name };
-      await AsyncStorage.setItem('user', JSON.stringify(userData));
-      setAuthState(prev => ({
-        ...prev,
-        user: userData,
-      }));
-      // Navigate to tabs after completing profile
-      router.replace('/(tabs)');
-    } catch (error) {
-      console.error('Error completing profile:', error);
-    }
+  const verifyOtp = async (phone: string, code: string) => {
+    const res = await fetch(`${BASE_URL}/auth/otp/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone, code })
+    });
+    if (!res.ok) throw new Error('Failed to verify OTP');
+    const json = await res.json();
+    await AsyncStorage.setItem('token', json.token);
+    await AsyncStorage.setItem('user', JSON.stringify(json.user));
+    setAuthState({ isAuthenticated: true, isLoading: false, user: json.user });
+    router.replace('/(tabs)');
   };
 
   const logout = async () => {
     try {
       await AsyncStorage.removeItem('user');
-      setAuthState({
-        isAuthenticated: false,
-        isLoading: false,
-        user: null,
-      });
+      await AsyncStorage.removeItem('token');
+      setAuthState({ isAuthenticated: false, isLoading: false, user: null });
       router.replace('/login');
     } catch (error) {
       console.error('Error during logout:', error);
@@ -105,7 +123,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ authState, login, logout, completeProfile }}>
+    <AuthContext.Provider value={{ authState, register, requestOtp, verifyOtp, logout }}>
       {children}
     </AuthContext.Provider>
   );

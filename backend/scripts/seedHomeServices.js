@@ -3,12 +3,12 @@ const HomeService = require('../src/models/HomeService');
 
 // Connect to database using environment variables
 const sequelize = new Sequelize(
-  process.env.PGDATABASE || 'dm_app',
-  process.env.PGUSER || 'postgres',
-  process.env.PGPASSWORD || 'root5',
+  process.env.PGDATABASE,
+  process.env.PGUSER,
+  process.env.PGPASSWORD,
   {
-    host: process.env.PGHOST || 'localhost',
-    port: process.env.PGPORT || 5432,
+    host: process.env.PGHOST,
+    port: process.env.PGPORT,
     dialect: 'postgres',
     logging: false
   }
