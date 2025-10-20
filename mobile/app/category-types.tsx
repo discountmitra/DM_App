@@ -69,7 +69,6 @@ export default function CategoryTypesScreen() {
       case 'healthcare':
         return [
           { id: 'Hospitals', label: 'Hospitals', icon: 'business', description: 'Hospitals & Clinics' },
-          { id: 'Diagnostics', label: 'Diagnostics', icon: 'pulse', description: 'Lab and imaging' },
           { id: 'Pharmacy', label: 'Pharmacy', icon: 'bag-handle', description: 'Medicines and more' },
           { id: 'Dental', label: 'Dental', icon: 'sparkles', description: 'Dental care & surgery' },
           { id: 'Eye', label: 'Eye', icon: 'eye', description: 'Opticals & eye care' },

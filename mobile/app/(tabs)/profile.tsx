@@ -95,7 +95,7 @@ export default function ProfileScreen() {
       <View style={styles.cardsContainer}>
         <TouchableOpacity style={styles.card} onPress={() => router.push('/favorites')}>
           <View style={styles.cardIcon}>
-            <Ionicons name="heart" size={24} color="#10b981" />
+            <Image source={require('../../assets/favorite.png')} style={styles.cardImage} />
           </View>
           <Text style={styles.cardText}>Favourites</Text>
           {favorites.length > 0 && (
@@ -111,7 +111,7 @@ export default function ProfileScreen() {
           });
         }}>
           <View style={styles.cardIcon}>
-            <Ionicons name="bag" size={24} color="#3b82f6" />
+            <Image source={require('../../assets/delivery.png')} style={styles.cardImage} />
           </View>
           <Text style={styles.cardText}>Orders</Text>
         </TouchableOpacity>
@@ -122,7 +122,7 @@ export default function ProfileScreen() {
           });
         }}>
           <View style={styles.cardIcon}>
-            <Ionicons name="people-outline" size={24} color="#10b981" />
+            <Image source={require('../../assets/referral.png')} style={styles.cardImage} />
           </View>
           <Text style={styles.cardText}>Referrals</Text>
         </TouchableOpacity>
@@ -358,6 +358,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: Spacing.sm,
+  },
+  cardImage: {
+    width: 24,
+    height: 24,
+    resizeMode: "contain",
   },
   cardText: {
     fontSize: 13,

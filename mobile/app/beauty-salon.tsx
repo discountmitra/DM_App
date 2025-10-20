@@ -79,8 +79,8 @@ export default function BeautySalonScreen() {
 
   const filtered = useMemo(() => {
     const byCat = services.filter(s => {
-      // we stored category at service level when flattening above via s.category
-      return s.subcategory ? true : true;
+      // Filter by selected category (men/women/unisex) - handle case sensitivity
+      return s.subcategory?.toLowerCase() === selectedCategory.toLowerCase();
     });
     if (!query.trim()) return byCat;
     return byCat.filter(s => matchesOrdered(query, s.name, s.description, s.subcategory));
