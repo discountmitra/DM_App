@@ -1,27 +1,32 @@
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from "@expo/vector-icons";
 import { Spacing, FontSizes, FontWeights } from "../../theme";
 
 type Props = {
-  icon: keyof typeof Ionicons.glyphMap;
+  icon?: keyof typeof Ionicons.glyphMap; // kept for backward compatibility
   title: string;
   color?: string;
   onPress?: () => void;
   comingSoon?: boolean;
+  imageSource?: any; // local png
 };
 
-export default function CategoryCard({ icon, title, color = "#4A90E2", onPress, comingSoon = false }: Props) {
+export default function CategoryCard({ icon, title, color = "#4A90E2", onPress, comingSoon = false, imageSource }: Props) {
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
       <LinearGradient
-        colors={[`${color}40`, `${color}1A`]}
+        colors={["#ffffff", "#ffffff"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.cardGradient}
       >
-        <View style={[styles.iconWrapper, { backgroundColor: `${color}15` }]}>
-          <Ionicons name={icon} size={28} color={color} />
+        <View style={[styles.imageWrapper]}> 
+          {imageSource ? (
+            <Image source={imageSource} style={styles.image} resizeMode="contain" />
+          ) : (
+            <Ionicons name={icon as any} size={28} color={color} />
+          )}
         </View>
         <Text style={styles.title}>{title}</Text>
         {comingSoon && (
@@ -61,14 +66,16 @@ const styles = StyleSheet.create({
     // Enhanced Elevation for Android
     elevation: 5,
   },
-  iconWrapper: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  imageWrapper: {
+    width: 64,
+    height: 64,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: Spacing.sm,
+    backgroundColor: '#ffffff',
   },
+  image: { width: 48, height: 48 },
   title: {
     fontSize: FontSizes.small,
     textAlign: "center",

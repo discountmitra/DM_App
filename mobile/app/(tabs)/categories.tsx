@@ -1,5 +1,6 @@
 import { View, FlatList, StyleSheet, TextInput } from "react-native";
 import CategoryCard from "@/components/home/CategoryCard";
+import { categoryImages } from "../../constants/assets";
 import { Spacing } from "@/theme";
 import { useNavigation, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -111,11 +112,11 @@ export default function CategoriesScreen() {
             return (
               <View style={{ width: "50%" }}>
                 <CategoryCard
-                  icon={item.icon as any}
                   title={item.title}
                   color={item.color}
                   onPress={handlePress}
                   comingSoon={item.comingSoon}
+                  imageSource={categoryImages[item.title]}
                 />
               </View>
             );

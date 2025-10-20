@@ -48,21 +48,36 @@ export default function VerifyPhoneScreen() {
   }, [otp]);
 
   const handleOtpChange = (value: string, index: number) => {
-    // Only allow single digit
-    if (value.length > 1) {
-      value = value.slice(-1);
-    }
-
-    const newOtp = [...otp];
-    newOtp[index] = value;
-    // Prevent edits while verifying
     if (isVerifying) return;
-    setOtp(newOtp);
 
-    // Auto-focus next input
-    if (value && index < 3) {
-      inputRefs.current[index + 1]?.focus();
+    // Normalize to digits only
+    const digitsOnly = value.replace(/\D/g, '');
+
+    // If autofill/paste provides multiple digits, distribute across inputs
+    if (digitsOnly.length > 1) {
+      const spread = digitsOnly.slice(0, 4).split("");
+      const next = ["", "", "", ""] as string[];
+      for (let i = 0; i < 4; i++) {
+        const fromIndex = i - index;
+        // place starting at current index
+        if (fromIndex >= 0 && fromIndex < spread.length) next[i] = spread[fromIndex];
+      }
+      // If user tapped first box, simpler: fill from start
+      if (index === 0) {
+        for (let i = 0; i < spread.length; i++) next[i] = spread[i];
+      }
+      setOtp(next);
+      // Move focus to last filled cell
+      const lastIdx = Math.min(spread.length - 1 + (index === 0 ? 0 : index), 3);
+      inputRefs.current[lastIdx]?.focus();
+      return;
     }
+
+    // Single digit flow
+    const newOtp = [...otp];
+    newOtp[index] = digitsOnly;
+    setOtp(newOtp);
+    if (digitsOnly && index < 3) inputRefs.current[index + 1]?.focus();
   };
 
   const handleKeyPress = (key: string, index: number) => {

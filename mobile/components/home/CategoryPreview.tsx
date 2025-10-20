@@ -1,13 +1,14 @@
 import { View, Text, FlatList, StyleSheet, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
 import CategoryCard from "./CategoryCard";
+import { categoryImages } from "../../constants/assets";
 import { Spacing, FontSizes, Colors } from "../../theme";
 
 const categories = [
   { id: "1", title: "Food", subtitle: "Restaurants & Dine Out", icon: "fast-food", color: "#FF6B6B" },
   { id: "2", title: "Healthcare", subtitle: "Hospitals & Clinics", icon: "medkit", color: "#4ECDC4" },
-  { id: "8", title: "Events", subtitle: "Event Management", icon: "calendar", color: "#E91E63" },
   { id: "4", title: "Home Services", subtitle: "Repair & Maintenance", icon: "build", color: "#FFA502" },
+  { id: "8", title: "Events", subtitle: "Event Management", icon: "calendar", color: "#E91E63" },
   { id: "6", title: "Beauty & Salon", subtitle: "Hair & Beauty Care", icon: "color-palette", color: "#B53471" },
 ];
 
@@ -37,10 +38,10 @@ export default function CategoriesPreview() {
 
           return (
             <CategoryCard
-              icon={item.icon as any}
               title={item.title}
               color={item.color}
               onPress={handlePress}
+              imageSource={categoryImages[item.title]}
             />
           );
         }}

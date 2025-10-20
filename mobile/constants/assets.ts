@@ -76,3 +76,25 @@ export const noDataSvgUrl = `https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1
 export const soonSvgUrl = `https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/assets/soon.svg` as const;
 // Use logo as a generic default placeholder (remote only)
 export const defaultImage = logoImage;
+
+// Local category PNGs (used on Home and Categories screens)
+// Keys are category titles exactly as used in categoriesData.ts
+export const categoryImages: Record<string, any> = {
+  'Automobiles': require('../assets/Automobiles.png'),
+  'Bar': require('../assets/Bar.png'),
+  'Construction': require('../assets/Construction.png'),
+  'Education': require('../assets/Education.png'),
+  'Home Services': require('../assets/Home Services.png'),
+  'Events': require('../assets/Event.png'),
+  'Language': require('../assets/Language.png'),
+  'Salon & Beauty': require('../assets/Salon And Beauty.png'),
+  'Beauty & Salon': require('../assets/Salon And Beauty.png'),
+  'Shopping': require('../assets/Shopping.png'),
+  'VIP': require('../assets/VIP.png'),
+  // New lowercase asset additions
+  'Food': require('../assets/food.png'),
+  'Healthcare': require('../assets/healthcare.png'),
+  'Others': require('../assets/others.png'),
+  'Travel': require('../assets/travel.png'),
+  'Electronics': require('../assets/electronics.png'),
+};

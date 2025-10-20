@@ -75,7 +75,7 @@ export default function VipSubscriptionScreen() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [couponCode, setCouponCode] = useState("WELCOME");
+  const [couponCode, setCouponCode] = useState("");
   const [couponApplied, setCouponApplied] = useState(false);
   const [couponError, setCouponError] = useState<string | null>(null);
   const [couponDiscountPct, setCouponDiscountPct] = useState(0);
