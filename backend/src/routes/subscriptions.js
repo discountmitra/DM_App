@@ -73,8 +73,8 @@ router.post('/purchase', authenticateToken, async (req, res) => {
       case 'monthly':
         subscriptionEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
         break;
-      case 'quarterly':
-        subscriptionEnd = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
+      case 'halfyearly':
+        subscriptionEnd = new Date(now.getTime() + 182 * 24 * 60 * 60 * 1000); // approx 6 months
         break;
       case 'yearly':
         subscriptionEnd = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);

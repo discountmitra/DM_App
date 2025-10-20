@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, LayoutAnimation, Modal, ActivityIndicator, Animated, TouchableWithoutFeedback, TextInput } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRouter } from "expo-router";
@@ -22,7 +23,7 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     id: "monthly",
     name: "Monthly",
     price: 99,
-    originalPrice: 199,
+    originalPrice: 99,
     duration: "1 month",
     features: [
       "Unlimited service requests",
@@ -33,11 +34,11 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     ]
   },
   {
-    id: "quarterly",
-    name: "Quarterly",
-    price: 249,
-    originalPrice: 597,
-    duration: "3 months",
+    id: "halfyearly",
+    name: "Half Yearly",
+    price: 699,
+    originalPrice: 699,
+    duration: "6 months",
     features: [
       "Unlimited service requests",
       "Priority customer support",
@@ -49,8 +50,8 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   {
     id: "yearly",
     name: "Yearly",
-    price: 799,
-    originalPrice: 2388,
+    price: 999,
+    originalPrice: 999,
     duration: "12 months",
     features: [
       "Unlimited service requests",
@@ -69,7 +70,7 @@ export default function VipSubscriptionScreen() {
   
   // Determine user mode based on authentication
   const isVip = authState.user?.isVip || false;
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set(["quarterly"]));
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set(["halfyearly"]));
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
@@ -78,11 +79,42 @@ export default function VipSubscriptionScreen() {
   const [couponApplied, setCouponApplied] = useState(false);
   const [couponError, setCouponError] = useState<string | null>(null);
   const [couponDiscountPct, setCouponDiscountPct] = useState(0);
+  const [subscriptionData, setSubscriptionData] = useState<any>(null);
+  const [cancellationReason, setCancellationReason] = useState('');
+  const [showThankYouModal, setShowThankYouModal] = useState(false);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  const welcomeAnim = useRef(new Animated.Value(0)).current;
+
+  // Fetch subscription status
+  useEffect(() => {
+    const fetchSubscriptionStatus = async () => {
+      if (isVip) {
+        try {
+          const status = await subscriptionService.getSubscriptionStatus();
+          setSubscriptionData(status.currentSubscription);
+        } catch (error) {
+          console.error('Failed to fetch subscription status:', error);
+        }
+      }
+    };
+    fetchSubscriptionStatus();
+  }, [isVip]);
+
+  // Calculate days remaining
+  const calculateDaysRemaining = () => {
+    if (subscriptionData?.subscriptionEnd) {
+      const now = new Date();
+      const endDate = new Date(subscriptionData.subscriptionEnd);
+      const diffTime = endDate.getTime() - now.getTime();
+      return Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+    }
+    return isVip ? 365 : 0;
+  };
 
   // Simplified subscription status for demo
   const subscriptionStatus = {
-    planName: isVip ? "VIP Member" : "Normal User",
-    daysRemaining: isVip ? 365 : 0
+    planName: subscriptionData?.planName || (isVip ? "VIP Member" : "Normal User"),
+    daysRemaining: calculateDaysRemaining()
   };
   const shimmerAnim = useRef(new Animated.Value(0)).current;
 
@@ -145,7 +177,14 @@ export default function VipSubscriptionScreen() {
       
       // Refresh user data to update VIP status
       await refreshUserData();
-      router.back();
+      
+      // Refresh subscription data
+      const status = await subscriptionService.getSubscriptionStatus();
+      setSubscriptionData(status.currentSubscription);
+
+      // Flag home to show welcome animation, then navigate to Home tab
+      try { await AsyncStorage.setItem('SHOW_WELCOME_AFTER_PURCHASE', '1'); } catch {}
+      try { router.replace('/(tabs)'); } catch { router.back(); }
     } catch (error) {
       setIsLoading(false);
       console.error('Subscription failed:', error);
@@ -157,18 +196,28 @@ export default function VipSubscriptionScreen() {
   };
 
   const confirmCancellation = async () => {
+    if (!cancellationReason.trim()) {
+      alert('Please provide a reason for cancellation');
+      return;
+    }
+
     setShowCancelModal(false);
     setIsLoading(true);
 
     try {
-      // Real cancellation process
-      const result = await subscriptionService.cancelSubscription('User requested cancellation');
+      // Real cancellation process with user's reason
+      const result = await subscriptionService.cancelSubscription(cancellationReason.trim());
       setIsLoading(false);
       console.log('Subscription cancelled:', result);
       
       // Refresh user data to update VIP status
       await refreshUserData();
-      router.back();
+      
+      // Clear subscription data
+      setSubscriptionData(null);
+      
+      // Show thank you modal
+      setShowThankYouModal(true);
     } catch (error) {
       setIsLoading(false);
       console.error('Cancellation failed:', error);
@@ -207,10 +256,10 @@ export default function VipSubscriptionScreen() {
               </View>
               <Text style={styles.heroTitle}>Welcome to VIP!</Text>
               <Text style={styles.heroSubtitle}>You're enjoying premium benefits and exclusive savings.</Text>
-              {subscription?.couponCode ? (
+              {subscriptionData?.couponCode ? (
                 <View style={styles.couponAppliedPill}>
                   <Ionicons name="pricetags" size={14} color="#065f46" />
-                  <Text style={styles.couponAppliedText}>Coupon applied: {subscription.couponCode}</Text>
+                  <Text style={styles.couponAppliedText}>Coupon applied: {subscriptionData.couponCode}</Text>
                 </View>
               ) : null}
               
@@ -223,13 +272,10 @@ export default function VipSubscriptionScreen() {
                   <Text style={styles.planDetailLabel}>Days Remaining:</Text>
                   <Text style={styles.planDetailValue}>{subscriptionStatus.daysRemaining} days</Text>
                 </View>
-                {subscription?.pricePaid !== undefined && subscription?.originalPrice !== undefined && subscription.pricePaid !== subscription.originalPrice ? (
+                {subscriptionData?.amountPaid !== undefined ? (
                   <View style={[styles.planDetailRow, { marginTop: 4 }]}> 
-                    <Text style={styles.planDetailLabel}>You Paid:</Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                      <Text style={styles.planDetailValue}>₹{subscription.pricePaid}</Text>
-                      <Text style={styles.strikedPriceLight}>₹{subscription.originalPrice}</Text>
-                    </View>
+                    <Text style={styles.planDetailLabel}>Amount Paid:</Text>
+                    <Text style={styles.planDetailValue}>₹{subscriptionData.amountPaid}</Text>
                   </View>
                 ) : null}
               </View>
@@ -237,7 +283,13 @@ export default function VipSubscriptionScreen() {
 
           <View style={styles.benefitsSection}>
               <Text style={styles.sectionTitle}>Your VIP Benefits</Text>
-              {SUBSCRIPTION_PLANS.find(p => p.id === subscription?.planId)?.features.map((benefit, index) => (
+              {(SUBSCRIPTION_PLANS.find(p => p.id === subscriptionData?.planId)?.features || [
+                "Unlimited service requests",
+                "Priority customer support", 
+                "Exclusive VIP discounts",
+                "Free premium services",
+                "24/7 dedicated support"
+              ]).map((benefit, index) => (
                 <View key={index} style={styles.benefitRow}>
                   <Ionicons name="checkmark-circle" size={16} color="#10b981" />
                   <Text style={styles.benefitText}>{benefit}</Text>
@@ -449,22 +501,37 @@ export default function VipSubscriptionScreen() {
               You'll lose access to all premium benefits and exclusive features. This action cannot be undone.
             </Text>
 
-
+            <View style={styles.reasonInputContainer}>
+              <Text style={styles.reasonInputLabel}>Please tell us why you're cancelling:</Text>
+              <TextInput
+                style={styles.reasonInput}
+                placeholder="e.g., Too expensive, Not using enough, Found alternative..."
+                placeholderTextColor="#9ca3af"
+                value={cancellationReason}
+                onChangeText={setCancellationReason}
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+              />
+            </View>
 
             <View style={styles.cancelModalButtonContainer}>
               <TouchableOpacity
                 style={styles.cancelModalButtonSecondary}
-                onPress={() => setShowCancelModal(false)}
+                onPress={() => {
+                  setShowCancelModal(false);
+                  setCancellationReason('');
+                }}
               >
                 <Ionicons name="arrow-back" size={18} color="#6b7280" />
                 <Text style={styles.cancelModalButtonSecondaryText}>Keep VIP</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.cancelModalButtonPrimary}
+                style={[styles.cancelModalButtonPrimary, !cancellationReason.trim() && styles.cancelModalButtonPrimaryDisabled]}
                 onPress={confirmCancellation}
+                disabled={!cancellationReason.trim()}
               >
-                {/* <Ionicons name="close-circle" size={18} color="#ffffff" /> */}
                 <Text style={styles.cancelModalButtonPrimaryText}>Cancel Subscription</Text>
               </TouchableOpacity>
             </View>
@@ -478,6 +545,87 @@ export default function VipSubscriptionScreen() {
           <View style={styles.loadingModalCard}>
             <ActivityIndicator size="large" color="#f59e0b" />
             <Text style={styles.loadingText}>Processing...</Text>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Thank You Modal */}
+      <Modal visible={showThankYouModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.thankYouModalCard}>
+            <View style={styles.thankYouIconContainer}>
+              <View style={styles.thankYouIconCircle}>
+                <Ionicons name="heart" size={40} color="#10b981" />
+              </View>
+            </View>
+
+            <Text style={styles.thankYouTitle}>Thank You!</Text>
+            <Text style={styles.thankYouSubtitle}>
+              Thank you for your feedback. We'll try to improve our services based on this.
+            </Text>
+
+             <TouchableOpacity
+               style={styles.thankYouButton}
+               onPress={() => {
+                 setShowThankYouModal(false);
+                 router.replace('/(tabs)');
+               }}
+             >
+              <Ionicons name="home" size={18} color="#ffffff" />
+              <Text style={styles.thankYouButtonText}>Go to Home</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Welcome Celebration Modal */}
+      <Modal visible={showWelcomeModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.welcomeModalCard}>
+            <View style={styles.welcomeHeader}>
+              <Text style={styles.welcomeTitle}>Welcome to VIP!</Text>
+              <Text style={styles.welcomeSubtitle}>Enjoy premium benefits and exclusive savings.</Text>
+            </View>
+
+            {/* Simple balloon/confetti animation using circles */}
+            <View style={styles.celebrationStage}>
+              {[...Array(8)].map((_, i) => {
+                const delay = i * 80;
+                const translateY = welcomeAnim.interpolate({ inputRange: [0, 1], outputRange: [60 + i * 6, -20] });
+                const opacity = welcomeAnim.interpolate({ inputRange: [0, 0.2, 1], outputRange: [0, 0.9, 1] });
+                const scale = welcomeAnim.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] });
+                const left = (i % 2 === 0 ? 20 : 60) + (i * 8);
+                const bg = i % 3 === 0 ? '#f59e0b' : i % 3 === 1 ? '#10b981' : '#60a5fa';
+                return (
+                  <Animated.View
+                    key={i}
+                    style={{
+                      position: 'absolute',
+                      left,
+                      bottom: 0,
+                      width: 14,
+                      height: 18,
+                      borderRadius: 8,
+                      backgroundColor: bg,
+                      opacity,
+                      transform: [{ translateY }, { scale }]
+                    }}
+                  />
+                );
+              })}
+            </View>
+
+            <TouchableOpacity
+              style={styles.welcomeButton}
+              onPress={() => {
+                setShowWelcomeModal(false);
+                // Go to Home tab explicitly
+                try { router.replace('/(tabs)'); } catch { router.back(); }
+              }}
+            >
+              <Ionicons name="rocket" size={18} color="#ffffff" />
+              <Text style={styles.welcomeButtonText}>Go to Home</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -554,10 +702,68 @@ const styles = StyleSheet.create({
   cancelBenefitItem: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
   cancelBenefitText: { fontSize: 14, color: "#7f1d1d", fontWeight: "500" },
   cancelModalButtonContainer: { flexDirection: "row", gap: 12 },
-  cancelModalButtonSecondary: { flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: "#f8fafc", alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6, borderWidth: 1, borderColor: "#e2e8f0" },
-  cancelModalButtonSecondaryText: { fontSize: 15, fontWeight: "600", color: "#6b7280" },
-  cancelModalButtonPrimary: { flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: "#ef4444", alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6 },
-  cancelModalButtonPrimaryText: { fontSize: 15, fontWeight: "700", color: "#ffffff" },
+  cancelModalButtonSecondary: { 
+    flex: 1, 
+    paddingVertical: 16, 
+    borderRadius: 12, 
+    backgroundColor: "#f8fafc", 
+    alignItems: "center", 
+    flexDirection: "row", 
+    justifyContent: "center", 
+    gap: 8, 
+    borderWidth: 1, 
+    borderColor: "#e2e8f0",
+    minHeight: 48
+  },
+  cancelModalButtonSecondaryText: { 
+    fontSize: 16, 
+    fontWeight: "600", 
+    color: "#6b7280",
+    textAlign: "center",
+    includeFontPadding: false
+  },
+  cancelModalButtonPrimary: { 
+    flex: 1, 
+    paddingVertical: 16, 
+    borderRadius: 12, 
+    backgroundColor: "#ef4444", 
+    alignItems: "center", 
+    flexDirection: "row", 
+    justifyContent: "center", 
+    gap: 8,
+    minHeight: 48,
+    shadowColor: "#ef4444",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3
+  },
+  cancelModalButtonPrimaryDisabled: { 
+    backgroundColor: "#9ca3af", 
+    opacity: 0.6,
+    shadowOpacity: 0
+  },
+  cancelModalButtonPrimaryText: { 
+    fontSize: 16, 
+    fontWeight: "700", 
+    color: "#ffffff",
+    textAlign: "center",
+    includeFontPadding: false
+  },
+
+  // Reason Input Styles
+  reasonInputContainer: { marginBottom: 20 },
+  reasonInputLabel: { fontSize: 14, fontWeight: "600", color: "#374151", marginBottom: 8 },
+  reasonInput: { backgroundColor: "#f9fafb", borderRadius: 12, padding: 12, fontSize: 14, color: "#111827", borderWidth: 1, borderColor: "#e5e7eb", minHeight: 80 },
+
+  // Thank You Modal Styles
+  thankYouModalCard: { backgroundColor: "#fff", borderRadius: 20, padding: 24, width: "100%", maxWidth: 360, shadowColor: "#000", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.25, shadowRadius: 16, elevation: 12 },
+  thankYouIconContainer: { alignItems: "center", marginBottom: 20 },
+  thankYouIconCircle: { width: 72, height: 72, borderRadius: 36, backgroundColor: "#f0fdf4", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "#bbf7d0" },
+  thankYouTitle: { fontSize: 22, fontWeight: "800", color: "#111827", textAlign: "center", marginBottom: 8 },
+  thankYouSubtitle: { fontSize: 15, color: "#6b7280", textAlign: "center", marginBottom: 24, lineHeight: 22 },
+  thankYouButton: { paddingVertical: 14, borderRadius: 12, backgroundColor: "#10b981", alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6 },
+  thankYouButtonText: { fontSize: 15, fontWeight: "700", color: "#ffffff" },
 
   // Buttons
   modalButtonContainer: { flexDirection: "row", gap: 10 },
@@ -566,6 +772,15 @@ const styles = StyleSheet.create({
   modalButtonPrimary: { flex: 1, paddingVertical: 12, borderRadius: 10, backgroundColor: "#f59e0b", alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6 },
   modalButtonPrimaryText: { fontSize: 15, fontWeight: "700", color: "#ffffff" },
   loadingText: { fontSize: 16, fontWeight: "600", color: "#111827", marginTop: 12, textAlign: "center" },
+
+  // Welcome Modal Styles
+  welcomeModalCard: { backgroundColor: "#fff", borderRadius: 20, padding: 24, width: "100%", maxWidth: 360, shadowColor: "#000", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.25, shadowRadius: 16, elevation: 12, overflow: 'hidden' },
+  welcomeHeader: { alignItems: 'center', marginBottom: 16 },
+  welcomeTitle: { fontSize: 22, fontWeight: '800', color: '#111827', textAlign: 'center' },
+  welcomeSubtitle: { fontSize: 14, color: '#6b7280', textAlign: 'center', marginTop: 6 },
+  celebrationStage: { height: 120, marginVertical: 10 },
+  welcomeButton: { paddingVertical: 14, borderRadius: 12, backgroundColor: '#f59e0b', alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8, marginTop: 10 },
+  welcomeButtonText: { fontSize: 15, fontWeight: '700', color: '#ffffff' },
 
   // Coupon UI
   couponCard: { backgroundColor: 'transparent', borderRadius: 12, padding: 12, marginBottom: 12, borderWidth: 0, borderColor: 'transparent' },

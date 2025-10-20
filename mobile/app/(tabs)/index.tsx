@@ -5,7 +5,9 @@ import DealCard from "../../components/home/DealCard";
 import CategoryPreview from "../../components/home/CategoryPreview";
 import { Spacing, Colors } from "../../theme";
 import { useNavigation, useRouter } from "expo-router";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Animated, Modal } from 'react-native';
 import CustomTopBar from "@/components/home/CustomTopBar";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../contexts/AuthContext";
@@ -15,6 +17,8 @@ export default function HomeScreen() {
   const navigation = useNavigation();
   const router = useRouter();
   const { authState } = useAuth();
+  const [showWelcome, setShowWelcome] = useState(false);
+  const confettiAnim = useRef(new Animated.Value(0)).current;
   
   // Determine user mode based on authentication
   const isVip = authState.user?.isVip || false;
@@ -23,6 +27,19 @@ export default function HomeScreen() {
   useEffect(() => {
     navigation.setOptions({ headerShown: false }); // Hide default header
   }, [navigation]);
+
+  useEffect(() => {
+    const maybeShowWelcome = async () => {
+      const flag = await AsyncStorage.getItem('SHOW_WELCOME_AFTER_PURCHASE');
+      if (flag === '1') {
+        setShowWelcome(true);
+        AsyncStorage.removeItem('SHOW_WELCOME_AFTER_PURCHASE');
+        confettiAnim.setValue(0);
+        Animated.timing(confettiAnim, { toValue: 1, duration: 800, useNativeDriver: true }).start();
+      }
+    };
+    maybeShowWelcome();
+  }, []);
 
   const handleUpgrade = () => {
     router.push('/vip-subscription');
@@ -56,6 +73,21 @@ export default function HomeScreen() {
         {/* Categories Preview (only 4 shown here) */}
         <CategoryPreview />
       </LinearGradient>
+
+      <Modal visible={showWelcome} transparent animationType="fade" onRequestClose={() => setShowWelcome(false)}>
+        <View style={styles.welcomeOverlay}>
+          <View style={styles.welcomeCard}>
+            <Ionicons name="sparkles" size={48} color="#f59e0b" />
+            <Text style={[styles.welcomeTitle, { marginTop: 10 }]}>Welcome to VIP!</Text>
+            <Text style={styles.welcomeSubtitle}>You now have access to premium benefits and exclusive savings.</Text>
+
+            <TouchableOpacity style={[styles.welcomeButton, { marginTop: 14 }]} onPress={() => setShowWelcome(false)}>
+              <Ionicons name="thumbs-up" size={18} color="#ffffff" />
+              <Text style={styles.welcomeButtonText}>Explore benefits</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -120,6 +152,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
+  welcomeOverlay: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center', padding: 16 },
+  welcomeCard: { backgroundColor: '#fff', borderRadius: 16, padding: 20, width: '100%', maxWidth: 360, alignItems: 'center' },
+  welcomeTitle: { fontSize: 20, fontWeight: '800', color: '#111827' },
+  welcomeSubtitle: { fontSize: 14, color: '#6b7280', marginTop: 6, textAlign: 'center' },
+  welcomeButton: { paddingVertical: 12, paddingHorizontal: 16, borderRadius: 10, backgroundColor: '#f59e0b', flexDirection: 'row', alignItems: 'center', gap: 8 },
+  welcomeButtonText: { color: '#fff', fontWeight: '700' },
   bannerImage: {
     width: '100%',
     height: 120,

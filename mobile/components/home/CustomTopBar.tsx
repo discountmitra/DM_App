@@ -4,8 +4,10 @@ import { Spacing } from "../../theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function CustomTopBar() {
+  const insets = useSafeAreaInsets();
+  
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top + 10 }]}>
       {/* Search Bar */}
       <View style={styles.searchBar}>
         <Ionicons name="search-outline" size={18} color="#555" style={{ marginRight: 8 }} />
