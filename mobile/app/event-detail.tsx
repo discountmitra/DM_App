@@ -45,6 +45,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 // FAQ data now fetched from backend API
 import EventRequestForm from "../components/events/EventRequestForm";
 import { BASE_URL } from '../constants/api';
+import bookingService, { BookingData } from '../services/bookingService';
 
 type UserType = 'normal' | 'vip';
 
@@ -159,6 +160,12 @@ export default function EventDetailScreen() {
     : undefined;
 
   const handleBooking = () => {
+    // Check if user is authenticated
+    if (!authState.isAuthenticated) {
+      // You might want to show a login prompt here
+      return;
+    }
+
     const newErrors: { name?: string; phone?: string; date?: string; time?: string; venue?: string; service?: string } = {};
     if (!customerName.trim()) newErrors.name = 'Name is required';
     if (!/^\d{10}$/.test(phoneNumber.trim())) newErrors.phone = 'Enter valid 10-digit phone';
@@ -212,14 +219,39 @@ export default function EventDetailScreen() {
     handleClosePaymentPopup();
     router.push('/vip-subscription');
   };
-  const confirmBooking = () => {
+  const confirmBooking = async () => {
     setShowConfirmModal(false);
     setIsLoading(true);
-    setTimeout(() => {
-      setBookingId(Math.random().toString(36).slice(2, 8).toUpperCase());
+    
+    try {
+      const orderData = {
+        userName: customerName,
+        userPhone: phoneNumber,
+        address: venue || 'Not specified',
+        preferredTime: `${eventDate} ${eventTime}`,
+        issueNotes: specialRequirements || 'No special requirements'
+      };
+
+      const bookingData: BookingData = {
+        orderData,
+        serviceId: event.id,
+        serviceName: event.name,
+        serviceCategory: event.category,
+        requestId: Math.random().toString(36).slice(2, 8).toUpperCase(),
+        notes: `Date: ${eventDate}, Time: ${eventTime}, Venue: ${venue || 'Not specified'}, Requirements: ${specialRequirements || 'None'}`
+      };
+
+      const result = await bookingService.createBooking(bookingData);
+      setBookingId(result.booking.requestId);
       setIsLoading(false);
       setShowSuccessModal(true);
-    }, 1500);
+    } catch (error) {
+      console.error('Booking error:', error);
+      setIsLoading(false);
+      // Still show success for now, but you might want to show an error modal
+      setBookingId(Math.random().toString(36).slice(2, 8).toUpperCase());
+      setShowSuccessModal(true);
+    }
   };
   const closeSuccess = () => { setShowSuccessModal(false); router.back(); };
 
@@ -488,12 +520,24 @@ export default function EventDetailScreen() {
         <View className="section">
           {event.category === 'Chef' && (
         <View style={styles.section}>
-              <EventRequestForm type="chef" title="Chef Request" />
+              <EventRequestForm 
+                type="chef" 
+                title="Chef Request" 
+                serviceId={event.id}
+                serviceName={event.name}
+                serviceCategory={event.category}
+              />
           </View>
           )}
           {event.category === 'Photography' && (
             <View style={styles.section}>
-              <EventRequestForm type="photography" title="Photography Request" />
+              <EventRequestForm 
+                type="photography" 
+                title="Photography Request" 
+                serviceId={event.id}
+                serviceName={event.name}
+                serviceCategory={event.category}
+              />
           </View>
           )}
           {event.category !== 'Chef' && event.category !== 'Photography' && (

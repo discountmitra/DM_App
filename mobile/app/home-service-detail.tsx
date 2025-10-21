@@ -1,11 +1,12 @@
 import { useMemo, useState, useRef, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, TextInput, Modal, ActivityIndicator, Animated, TouchableWithoutFeedback } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, TextInput, Modal, ActivityIndicator, Animated, TouchableWithoutFeedback, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter, useNavigation } from "expo-router";
 import { useAuth } from "../contexts/AuthContext";
 import { LinearGradient } from "expo-linear-gradient";
 import LikeButton from "../components/common/LikeButton";
 import OfferCards from "../components/common/OfferCards";
+import bookingService, { BookingData } from "../services/bookingService";
 // categoryOffers removed - using database data
 // Default image URL for fallback
 // FAQ data now fetched from backend API
@@ -100,6 +101,19 @@ export default function HomeServiceDetailScreen() {
 
 
   const handleRequest = () => {
+    // Check if user is authenticated
+    if (!authState.isAuthenticated || !authState.user) {
+      Alert.alert(
+        'Login Required',
+        'Please login to book services. You can create an account or login with your existing phone number.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Login', onPress: () => router.push('/(auth)/login') }
+        ]
+      );
+      return;
+    }
+
     const newErrors: { name?: string; phone?: string; address?: string; time?: string } = {};
     if (!userName.trim()) newErrors.name = "Name is required";
     if (!/^\d{10}$/.test(userPhone.trim())) newErrors.phone = "Enter valid 10-digit phone";
@@ -142,14 +156,51 @@ export default function HomeServiceDetailScreen() {
     router.push('/vip-subscription');
   };
 
-  const confirmRequest = () => {
+  const confirmRequest = async () => {
     setShowConfirm(false);
     setShowProcessing(true);
-    setTimeout(() => {
-      setReqId(Math.random().toString(36).slice(2, 8).toUpperCase());
+    
+    try {
+      // Generate request ID
+      const requestId = Math.random().toString(36).slice(2, 8).toUpperCase();
+      
+      // Prepare booking data
+      const bookingData: BookingData = {
+        orderData: {
+          userName: userName.trim(),
+          userPhone: userPhone.trim(),
+          address: address.trim(),
+          preferredTime: preferredTime.trim(),
+          issueNotes: issueNotes.trim() || undefined,
+        },
+        serviceId: service!.id,
+        serviceName: service!.name,
+        serviceCategory: 'home-services',
+        requestId: requestId,
+        notes: issueNotes.trim() || undefined,
+      };
+
+      // Create booking via API
+      const result = await bookingService.createBooking(bookingData);
+      
+      if (result.success) {
+        setReqId(requestId);
+        setShowProcessing(false);
+        setShowDone(true);
+      } else {
+        throw new Error(result.message || 'Failed to create booking');
+      }
+    } catch (error: any) {
+      console.error('Booking error:', error);
       setShowProcessing(false);
-      setShowDone(true);
-    }, 1500);
+      Alert.alert(
+        'Booking Failed',
+        error.message || 'Failed to create booking. Please try again.',
+        [
+          { text: 'OK', onPress: () => setShowConfirm(true) }
+        ]
+      );
+    }
   };
   const closeDone = () => { setShowDone(false); router.back(); };
 
@@ -349,7 +400,12 @@ export default function HomeServiceDetailScreen() {
           <TouchableOpacity style={styles.requestBtn} onPress={handleRequest}>
             <Ionicons name="send" size={16} color="#fff" />
             <Text style={styles.requestBtnText}>
-              {userMode === 'vip' ? 'Request Now (Free)' : 'Request Now (₹9)'}
+              {!authState.isAuthenticated 
+                ? 'Login to Book Service' 
+                : userMode === 'vip' 
+                  ? 'Request Now (Free)' 
+                  : 'Request Now (₹9)'
+              }
             </Text>
           </TouchableOpacity>
           <Text style={styles.noteText}>You will receive a confirmation with a request ID after submission.</Text>

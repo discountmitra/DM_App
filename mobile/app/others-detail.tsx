@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRouter } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
+import { bookingService } from '../services/bookingService';
 // FAQ data now fetched from backend API
 
 export default function OthersDetailScreen() {
@@ -33,7 +34,7 @@ export default function OthersDetailScreen() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [requestCode, setRequestCode] = useState('');
+  const [requestId, setRequestId] = useState('');
   const [popupAnim] = useState(new Animated.Value(0));
 
   // Form state
@@ -86,6 +87,16 @@ export default function OthersDetailScreen() {
   const handleSubmitRequest = () => {
     if (!validateForm()) return;
 
+    // Check authentication
+    if (!authState.isAuthenticated || !authState.user) {
+      Alert.alert(
+        'Login Required',
+        'Please login to submit service requests. You can create an account or login with your existing phone number.',
+        [{ text: 'Cancel', style: 'cancel' }, { text: 'Login', onPress: () => router.push('/(auth)/login') }]
+      );
+      return;
+    }
+
     if (userMode === 'normal') {
       setShowPaymentPopup(true);
       Animated.spring(popupAnim, {
@@ -123,13 +134,30 @@ export default function OthersDetailScreen() {
     setShowConfirmModal(false);
     setIsLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      const uniqueCode = Math.random().toString(36).slice(2, 8).toUpperCase();
-      setRequestCode(uniqueCode);
+    try {
+      const bookingData = {
+        serviceId: 'others-custom-service',
+        serviceName: 'Custom Service Request',
+        serviceCategory: 'Others',
+        orderData: {
+          serviceType: formData.serviceType,
+          description: formData.description,
+          location: formData.location,
+          contactPhone: formData.contactPhone,
+          additionalNotes: formData.additionalNotes,
+        },
+        notes: `Custom service request: ${formData.serviceType}`,
+      };
+
+      const result = await bookingService.createBooking(bookingData);
+      setRequestId(result.booking.requestId);
       setIsLoading(false);
       setShowSuccessModal(true);
-    }, 2000);
+    } catch (error: any) {
+      console.error('Error creating booking:', error);
+      setIsLoading(false);
+      Alert.alert('Error', error.message || 'Failed to submit request. Please try again.');
+    }
   };
 
   const closeSuccessModal = () => {
@@ -564,25 +592,19 @@ export default function OthersDetailScreen() {
             </View>
 
             <Text style={styles.successModalTitle}>Request Submitted!</Text>
-            <Text style={styles.successModalSubtitle}>
-              Your custom service request has been successfully submitted
-            </Text>
-
-            <View style={styles.successDetailsCard}>
-              <View style={styles.bookingCodeContainer}>
-                <Text style={styles.bookingCodeLabel}>Request Code</Text>
-                <Text style={styles.bookingCodeValue}>{requestCode}</Text>
-                <Text style={styles.bookingCodeNote}>
-                  Use this code to track your request
-                </Text>
+            {requestId ? (
+              <View style={styles.successDetailsCard}>
+                <Text style={styles.bookingCodeLabel}>Request ID</Text>
+                <Text style={styles.bookingCodeValue}>{requestId}</Text>
+                <Text style={styles.bookingCodeNote}>Keep this code for reference</Text>
               </View>
+            ) : null}
 
-              <View style={styles.contactInfoCard}>
-                <Ionicons name="time" size={20} color="#10b981" />
-                <Text style={styles.contactInfoText}>
-                  Our team will contact you within 24 hours with service provider options
-                </Text>
-              </View>
+            <View style={styles.contactInfoCard}>
+              <Ionicons name="time" size={20} color="#10b981" />
+              <Text style={styles.contactInfoText}>
+                Our team will contact you within 24 hours with service provider options
+              </Text>
             </View>
 
             <TouchableOpacity
@@ -1119,13 +1141,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 20,
-  },
-  bookingCodeContainer: {
     alignItems: "center",
-    marginBottom: 16,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
   },
   bookingCodeLabel: {
     fontSize: 13,

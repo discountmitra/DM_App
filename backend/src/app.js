@@ -14,6 +14,7 @@ const assetsRouter = require('./routes/assets');
 const offersRouter = require('./routes/offers');
 const authRouter = require('./routes/auth');
 const subscriptionsRouter = require('./routes/subscriptions');
+const bookingsRouter = require('./routes/bookings');
 
 const app = express();
 app.use(cors());
@@ -35,6 +36,7 @@ app.use('/assets', assetsRouter);
 app.use('/offers', offersRouter);
 app.use('/auth', authRouter);
 app.use('/subscriptions', subscriptionsRouter);
+app.use('/bookings', bookingsRouter);
 
 const PORT = process.env.PORT ;
 

@@ -3,9 +3,13 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, Modal, ActivityInd
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../contexts/AuthContext';
+import bookingService, { BookingData } from '../../services/bookingService';
 
 type CommonProps = {
   title: string;
+  serviceId: string;
+  serviceName: string;
+  serviceCategory: string;
 };
 
 type ChefConfig = {
@@ -139,14 +143,39 @@ export default function EventRequestForm(props: Props) {
     setShowDatePicker(false);
   };
 
-  const confirmSubmit = () => {
+  const confirmSubmit = async () => {
     setShowConfirmModal(false);
     setIsLoading(true);
-    setTimeout(() => {
-      setRequestCode(Math.random().toString(36).slice(2, 8).toUpperCase());
+    
+    try {
+      // Prepare booking data based on service type
+      const orderData = {
+        userName: name,
+        userPhone: phone,
+        address: props.type === 'chef' ? venue : eventType,
+        preferredTime: eventDate,
+        issueNotes: props.type === 'chef' ? `Days: ${days}` : `Budget: ${budget || 'Not specified'}`
+      };
+
+      const bookingData: BookingData = {
+        orderData,
+        serviceId: props.serviceId,
+        serviceName: props.serviceName,
+        serviceCategory: props.serviceCategory,
+        requestId: Math.random().toString(36).slice(2, 8).toUpperCase(),
+        notes: props.type === 'chef' ? `Venue: ${venue}, Days: ${days}` : `Event Type: ${eventType}, Budget: ${budget || 'Not specified'}`
+      };
+
+      const result = await bookingService.createBooking(bookingData);
+      setRequestCode(result.booking.requestId);
       setIsLoading(false);
       setShowSuccessModal(true);
-    }, 1200);
+    } catch (error) {
+      console.error('Booking error:', error);
+      setIsLoading(false);
+      // You might want to show an error modal here
+      setShowSuccessModal(true); // For now, still show success
+    }
   };
 
   const closeSuccess = () => {

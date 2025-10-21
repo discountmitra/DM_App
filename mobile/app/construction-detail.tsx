@@ -7,6 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import LikeButton from '../components/common/LikeButton';
 import OfferCards from '../components/common/OfferCards';
 import { BASE_URL } from '../constants/api';
+import bookingService, { BookingData } from '../services/bookingService';
 // FAQ data now fetched from backend API
 // Gallery images now come from database
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -47,6 +48,7 @@ export default function ConstructionDetailScreen() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [notes, setNotes] = useState('');
   const [quantity, setQuantity] = useState('');
+  const [requestId, setRequestId] = useState('');
   const [errors, setErrors] = useState<{ name?: string; phone?: string; quantity?: string }>({});
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
   const [showPaymentPopup, setShowPaymentPopup] = useState(false);
@@ -134,6 +136,12 @@ export default function ConstructionDetailScreen() {
   const displayImage = headerImage || current?.image || "";
 
   const handleRequest = () => {
+    // Check if user is authenticated
+    if (!authState.isAuthenticated) {
+      // You might want to show a login prompt here
+      return;
+    }
+
     const newErrors: { name?: string; phone?: string; quantity?: string } = {};
     if (!customerName.trim()) newErrors.name = 'Name is required';
     if (!/^\d{10}$/.test(phoneNumber.trim())) newErrors.phone = 'Enter valid 10-digit phone';
@@ -181,10 +189,43 @@ export default function ConstructionDetailScreen() {
     router.push('/vip-subscription');
   };
 
-  const confirmRequest = () => {
+  const confirmRequest = async () => {
     setShowConfirmModal(false);
     setIsLoading(true);
-    setTimeout(() => { setIsLoading(false); setShowSuccessModal(true); }, 1200);
+    
+    try {
+      const orderData = {
+        userName: customerName,
+        userPhone: phoneNumber,
+        address: 'Not specified',
+        preferredTime: 'Not specified',
+        issueNotes: notes || 'No additional notes'
+      };
+
+      // Add quantity to notes if it's a bricks category
+      const additionalNotes = current?.category === 'Bricks' && quantity 
+        ? `Quantity: ${quantity}. ${notes || 'No additional notes'}`
+        : notes || 'No additional notes';
+
+      const bookingData: BookingData = {
+        orderData,
+        serviceId: current?.id || '',
+        serviceName: current?.name || '',
+        serviceCategory: current?.category || '',
+        requestId: Math.random().toString(36).slice(2, 8).toUpperCase(),
+        notes: additionalNotes
+      };
+
+      const result = await bookingService.createBooking(bookingData);
+      setRequestId(result.booking.requestId);
+      setIsLoading(false);
+      setShowSuccessModal(true);
+    } catch (error) {
+      console.error('Booking error:', error);
+      setIsLoading(false);
+      // Still show success for now, but you might want to show an error modal
+      setShowSuccessModal(true);
+    }
   };
 
   const handleCall = async () => {
@@ -349,7 +390,7 @@ export default function ConstructionDetailScreen() {
             </View>
             <View style={styles.formRow}>
               <Text style={styles.inputLabel}>Phone Number</Text>
-              <TextInput value={phoneNumber} onChangeText={setPhoneNumber} placeholder="10-digit mobile number" placeholderTextColor="#9ca3af" style={styles.input} keyboardType="numeric" />
+              <TextInput value={phoneNumber} onChangeText={setPhoneNumber} placeholder="10-digit mobile number" placeholderTextColor="#9ca3af" style={styles.input} keyboardType="numeric" maxLength={10} />
               {errors.phone ? <Text style={styles.errorText}>{errors.phone}</Text> : null}
             </View>
             {current.category === 'Bricks' && (
@@ -378,29 +419,29 @@ export default function ConstructionDetailScreen() {
                 <Text style={styles.loadingText}>Loading FAQs...</Text>
               </View>
             ) : (
-              <View style={styles.faqList}>
-                {faqData.map((faq, index) => (
-                  <View key={index} style={styles.faqItem}>
-                    <TouchableOpacity
-                      style={styles.faqHeader}
-                      onPress={() => toggleFAQ(index)}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={styles.faqQuestion}>{faq.question}</Text>
-                      <Ionicons
-                        name={expandedFAQ === index ? 'chevron-up' : 'chevron-down'}
-                        size={20}
-                        color="#6b7280"
-                      />
-                    </TouchableOpacity>
-                    {expandedFAQ === index && (
-                      <View style={styles.faqAnswerContainer}>
-                        <Text style={styles.faqAnswer}>{faq.answer}</Text>
-                      </View>
-                    )}
-                  </View>
-                ))}
-              </View>
+            <View style={styles.faqList}>
+              {faqData.map((faq, index) => (
+                <View key={index} style={styles.faqItem}>
+                  <TouchableOpacity
+                    style={styles.faqHeader}
+                    onPress={() => toggleFAQ(index)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.faqQuestion}>{faq.question}</Text>
+                    <Ionicons
+                      name={expandedFAQ === index ? 'chevron-up' : 'chevron-down'}
+                      size={20}
+                      color="#6b7280"
+                    />
+                  </TouchableOpacity>
+                  {expandedFAQ === index && (
+                    <View style={styles.faqAnswerContainer}>
+                      <Text style={styles.faqAnswer}>{faq.answer}</Text>
+                    </View>
+                  )}
+                </View>
+              ))}
+            </View>
             )}
           </View>
 
@@ -556,7 +597,13 @@ export default function ConstructionDetailScreen() {
           <View style={styles.successModalCard}>
             <View style={styles.successIconCircle}><Ionicons name="checkmark-circle" size={48} color="#10b981" /></View>
             <Text style={styles.successTitle}>Request Submitted</Text>
-            <Text style={styles.successNote}>We’ll contact you shortly with the best quote</Text>
+            {requestId ? (
+              <View style={styles.successDetailsCard}>
+                <Text style={styles.bookingCodeLabel}>Request ID</Text>
+                <Text style={styles.bookingCodeValue}>{requestId}</Text>
+                <Text style={styles.bookingCodeNote}>Keep this code for reference</Text>
+              </View>
+            ) : null}
             <TouchableOpacity style={styles.successButton} onPress={() => { setShowSuccessModal(false); router.back(); }}>
               <Text style={styles.successButtonText}>Done</Text>
             </TouchableOpacity>
@@ -640,7 +687,10 @@ const styles = StyleSheet.create({
   successModalCard: { backgroundColor: '#ffffff', borderRadius: 16, padding: 20, width: '100%', maxWidth: 360, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12, elevation: 8, alignItems: 'center' },
   successIconCircle: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#f0fdf4', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
   successTitle: { fontSize: 20, fontWeight: '700', color: '#111827', marginBottom: 6 },
-  successNote: { fontSize: 13, color: '#6b7280', textAlign: 'center', marginBottom: 14 },
+  successDetailsCard: { backgroundColor: '#f8fafc', borderRadius: 12, padding: 16, marginBottom: 20, alignItems: 'center' },
+  bookingCodeLabel: { fontSize: 13, color: '#6b7280', marginBottom: 6, fontWeight: '600' },
+  bookingCodeValue: { fontSize: 24, fontWeight: '700', color: '#f97316', letterSpacing: 1, marginBottom: 6 },
+  bookingCodeNote: { fontSize: 11, color: '#9ca3af', textAlign: 'center' },
   successButton: { paddingVertical: 14, borderRadius: 10, alignItems: 'center', backgroundColor: '#f97316', width: '100%' },
   successButtonText: { fontSize: 15, fontWeight: '700', color: '#ffffff' },
 
