@@ -17,7 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRouter } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
-import { bookingService } from '../services/bookingService';
+import bookingService from '../services/bookingService';
 // FAQ data now fetched from backend API
 
 export default function OthersDetailScreen() {
@@ -135,6 +135,9 @@ export default function OthersDetailScreen() {
     setIsLoading(true);
 
     try {
+      // Generate a short request ID similar to other categories
+      const generatedRequestId = Math.random().toString(36).slice(2, 8).toUpperCase();
+
       const bookingData = {
         serviceId: 'others-custom-service',
         serviceName: 'Custom Service Request',
@@ -146,11 +149,13 @@ export default function OthersDetailScreen() {
           contactPhone: formData.contactPhone,
           additionalNotes: formData.additionalNotes,
         },
+        requestId: generatedRequestId,
         notes: `Custom service request: ${formData.serviceType}`,
       };
 
       const result = await bookingService.createBooking(bookingData);
-      setRequestId(result.booking.requestId);
+      // Prefer the generated ID to ensure immediate display
+      setRequestId(generatedRequestId);
       setIsLoading(false);
       setShowSuccessModal(true);
     } catch (error: any) {

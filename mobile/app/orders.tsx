@@ -1,157 +1,132 @@
-import { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Image, TextInput } from "react-native";
+import { useEffect, useState } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, FlatList } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import bookingService from "../services/bookingService";
+import { useAuth } from "../contexts/AuthContext";
+type BookingStatus = 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled';
 
-type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivered' | 'cancelled';
-
-interface Order {
+interface BookingItem {
   id: string;
-  restaurantName: string;
-  items: string[];
-  totalAmount: string;
-  status: OrderStatus;
-  orderDate: string;
-  deliveryTime: string;
-  image: string;
+  serviceName: string;
+  serviceCategory: string;
+  requestId: string;
+  amountPaid: number;
+  bookingDate: string; // ISO string
+  status: BookingStatus;
+  paymentStatus?: string;
 }
-
-const mockOrders: Order[] = [
-  {
-    id: "1",
-    restaurantName: "ICE HOUSE",
-    items: ["Margherita Pizza", "Caesar Salad", "Coca Cola"],
-    totalAmount: "$24.50",
-    status: "delivered",
-    orderDate: "2024-01-15",
-    deliveryTime: "30 min",
-    image: "https://images.unsplash.com/photo-1513104890138-7c749659a591"
-  },
-  {
-    id: "2",
-    restaurantName: "Bella Vista",
-    items: ["Chicken Burger", "French Fries"],
-    totalAmount: "$18.75",
-    status: "preparing",
-    orderDate: "2024-01-14",
-    deliveryTime: "25 min",
-    image: "https://images.unsplash.com/photo-1571091718767-18b5b1457add"
-  },
-  {
-    id: "3",
-    restaurantName: "Sushi Master",
-    items: ["California Roll", "Miso Soup", "Green Tea"],
-    totalAmount: "$32.00",
-    status: "ready",
-    orderDate: "2024-01-13",
-    deliveryTime: "20 min",
-    image: "https://images.unsplash.com/photo-1579584425555-c3ce17fd4351"
-  }
-];
 
 export default function OrdersScreen() {
   const navigation = useNavigation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [filterStatus, setFilterStatus] = useState<OrderStatus | 'all'>('all');
+  const { authState } = useAuth();
+  const [bookings, setBookings] = useState<BookingItem[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
 
-  const statusOptions: { key: OrderStatus | 'all'; label: string; color: string }[] = [
-    { key: 'all', label: 'All', color: '#6b7280' },
-    { key: 'pending', label: 'Pending', color: '#f59e0b' },
-    { key: 'confirmed', label: 'Confirmed', color: '#3b82f6' },
-    { key: 'preparing', label: 'Preparing', color: '#8b5cf6' },
-    { key: 'ready', label: 'Ready', color: '#10b981' },
-    { key: 'delivered', label: 'Delivered', color: '#059669' },
-    { key: 'cancelled', label: 'Cancelled', color: '#dc2626' },
-  ];
+  const statusColor: Record<BookingStatus, string> = {
+    pending: '#f59e0b',
+    confirmed: '#3b82f6',
+    in_progress: '#8b5cf6',
+    completed: '#059669',
+    cancelled: '#dc2626',
+  };
 
-  const filteredOrders = filterStatus === 'all' 
-    ? mockOrders 
-    : mockOrders.filter(order => order.status === filterStatus);
+  useEffect(() => {
+    // hide native header if any
+    // @ts-ignore
+    navigation.setOptions?.({ headerShown: false });
+  }, [navigation]);
 
-  const getStatusIcon = (status: OrderStatus) => {
+  useEffect(() => {
+    const fetchBookings = async () => {
+      if (!authState.isAuthenticated) return;
+      setIsLoading(true);
+      setError("");
+      try {
+        const res = await bookingService.getMyBookings();
+        const list = (res?.bookings || res || []) as BookingItem[];
+        const sorted = list.sort((a, b) => new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime());
+        setBookings(sorted);
+      } catch (e: any) {
+        setError(e?.message || 'Failed to load bookings');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchBookings();
+  }, [authState.isAuthenticated]);
+
+  const getStatusIcon = (status: BookingStatus) => {
     switch (status) {
       case 'pending': return 'time-outline';
       case 'confirmed': return 'checkmark-circle-outline';
-      case 'preparing': return 'restaurant-outline';
-      case 'ready': return 'checkmark-done-outline';
-      case 'delivered': return 'bicycle-outline';
+      case 'in_progress': return 'construct-outline';
+      case 'completed': return 'checkmark-done-outline';
       case 'cancelled': return 'close-circle-outline';
       default: return 'time-outline';
     }
   };
 
-  const renderOrderItem = ({ item }: { item: Order }) => (
-    <TouchableOpacity style={styles.orderCard} activeOpacity={0.9}>
+  const formatDate = (iso: string) => {
+    try {
+      const d = new Date(iso);
+      return d.toLocaleString();
+    } catch {
+      return iso;
+    }
+  };
+
+  const renderBookingItem = ({ item }: { item: BookingItem }) => (
+    <View style={styles.orderCard}>
       <View style={styles.orderHeader}>
-        <View style={styles.restaurantInfo}>
-          <Image 
-            source={{ uri: item.image }} 
-            style={styles.restaurantImage}
-            resizeMode="cover"
-          />
-          <View style={styles.restaurantDetails}>
-            <Text style={styles.restaurantName}>{item.restaurantName}</Text>
-            <Text style={styles.orderDate}>Ordered on {item.orderDate}</Text>
-          </View>
-        </View>
-        <View style={[styles.statusBadge, { backgroundColor: statusOptions.find(s => s.key === item.status)?.color + '20' }]}>
-          <Ionicons 
-            name={getStatusIcon(item.status)} 
-            size={16} 
-            color={statusOptions.find(s => s.key === item.status)?.color} 
-          />
-          <Text style={[styles.statusText, { color: statusOptions.find(s => s.key === item.status)?.color }]}>
-            {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
-          </Text>
+        <View style={styles.restaurantDetails}>
+          <Text style={styles.restaurantName}>{item.serviceName}</Text>
+          <Text style={styles.orderDate}>{item.serviceCategory} • {formatDate(item.bookingDate)}</Text>
         </View>
       </View>
 
-      <View style={styles.orderItems}>
-        <Text style={styles.itemsTitle}>Items:</Text>
-        {item.items.map((itemName, index) => (
-          <Text key={index} style={styles.itemName}>• {itemName}</Text>
-        ))}
+      <View style={styles.metaRow}>
+        <Text style={styles.metaLabel}>Request ID</Text>
+        <Text style={styles.metaValue}>{item.requestId}</Text>
       </View>
 
-      <View style={styles.orderFooter}>
-        <View style={styles.deliveryInfo}>
-          <Ionicons name="time-outline" size={16} color="#6b7280" />
-          <Text style={styles.deliveryText}>Est. {item.deliveryTime}</Text>
+      <View style={styles.metaRow}>
+        <Text style={styles.metaLabel}>Amount Paid</Text>
+        <Text style={styles.metaValue}>{item.amountPaid === 0 ? 'Free' : `₹${item.amountPaid}`}</Text>
+      </View>
+
+      {item.paymentStatus ? (
+        <View style={styles.metaRow}>
+          <Text style={styles.metaLabel}>Payment</Text>
+          <Text style={styles.metaValue}>{item.paymentStatus}</Text>
         </View>
-        <Text style={styles.totalAmount}>{item.totalAmount}</Text>
-      </View>
-
-      <View style={styles.orderActions}>
-        <TouchableOpacity style={styles.actionButton}>
-          <Text style={styles.actionButtonText}>Reorder</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.actionButton, styles.primaryButton]}>
-          <Text style={[styles.actionButtonText, styles.primaryButtonText]}>Track Order</Text>
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
+      ) : null}
+    </View>
   );
 
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
       <View style={styles.emptyIconContainer}>
-        <Ionicons name="bag-outline" size={64} color="#d1d5db" />
+        <Ionicons name="document-text-outline" size={64} color="#d1d5db" />
       </View>
-      <Text style={styles.emptyTitle}>No Orders Yet</Text>
+      <Text style={styles.emptyTitle}>{authState.isAuthenticated ? 'No Bookings Yet' : 'Login to view your bookings'}</Text>
       <Text style={styles.emptySubtitle}>
-        {filterStatus === 'all' 
-          ? "Start ordering from your favorite restaurants!"
-          : `No ${filterStatus} orders found.`
-        }
+        {authState.isAuthenticated
+          ? 'Your bookings from Home Services, Events, Construction and Others will appear here.'
+          : 'Please login to sync your booking history across devices.'}
       </Text>
-      <TouchableOpacity 
-        style={styles.exploreButton}
-        onPress={() => router.push('/(tabs)')}
-      >
-        <Text style={styles.exploreButtonText}>Browse Restaurants</Text>
-      </TouchableOpacity>
+      {!authState.isAuthenticated ? (
+        <TouchableOpacity 
+          style={styles.exploreButton}
+          onPress={() => router.push('/(auth)/login')}
+        >
+          <Text style={styles.exploreButtonText}>Login</Text>
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 
@@ -169,52 +144,38 @@ export default function OrdersScreen() {
         <View style={styles.headerRight} />
       </View>
 
-      {/* Status Filter */}
-      <View style={styles.filterContainer}>
-        <FlatList
-          data={statusOptions}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterList}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[
-                styles.filterChip,
-                filterStatus === item.key && styles.filterChipActive,
-                { borderColor: item.color }
-              ]}
-              onPress={() => setFilterStatus(item.key)}
-            >
-              <Text style={[
-                styles.filterChipText,
-                filterStatus === item.key && styles.filterChipTextActive,
-                { color: filterStatus === item.key ? '#fff' : item.color }
-              ]}>
-                {item.label}
-              </Text>
-            </TouchableOpacity>
-          )}
-          keyExtractor={(item) => item.key}
-        />
-      </View>
+      {/* Filters removed intentionally */}
 
-      {/* Orders Count */}
+      {/* Bookings Count */}
       <View style={styles.countContainer}>
         <Text style={styles.countText}>
-          {filteredOrders.length} {filteredOrders.length === 1 ? 'order' : 'orders'}
-          {filterStatus !== 'all' && ` (${filterStatus})`}
+          {bookings.length} {bookings.length === 1 ? 'booking' : 'bookings'}
         </Text>
       </View>
 
-      {/* Orders List */}
+      {/* Bookings List */}
       <FlatList
-        data={filteredOrders}
-        renderItem={renderOrderItem}
+        data={bookings}
+        renderItem={renderBookingItem}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={renderEmptyState}
       />
+
+      {isLoading && (
+        <View style={styles.loadingOverlay}>
+          <Ionicons name="sync" size={20} color="#6b7280" />
+          <Text style={styles.loadingText}>Loading bookings...</Text>
+        </View>
+      )}
+
+      {!!error && (
+        <View style={styles.errorBar}>
+          <Ionicons name="alert-circle" size={16} color="#dc2626" />
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -308,17 +269,6 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     marginBottom: 12,
   },
-  restaurantInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  restaurantImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 8,
-    marginRight: 12,
-  },
   restaurantDetails: {
     flex: 1,
   },
@@ -344,65 +294,15 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginLeft: 4,
   },
-  orderItems: {
-    marginBottom: 12,
-  },
-  itemsTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#111827",
-    marginBottom: 6,
-  },
-  itemName: {
-    fontSize: 13,
-    color: "#6b7280",
-    marginBottom: 2,
-  },
   orderFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 16,
   },
-  deliveryInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  deliveryText: {
-    fontSize: 12,
-    color: "#6b7280",
-    marginLeft: 4,
-  },
-  totalAmount: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#111827",
-  },
-  orderActions: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  actionButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  primaryButton: {
-    backgroundColor: "#111827",
-    borderColor: "#111827",
-  },
-  actionButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#6b7280",
-  },
-  primaryButtonText: {
-    color: "#fff",
-  },
+  metaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  metaLabel: { fontSize: 12, color: '#6b7280', fontWeight: '600' },
+  metaValue: { fontSize: 14, color: '#111827', fontWeight: '700' },
   emptyContainer: {
     flex: 1,
     alignItems: "center",
@@ -443,4 +343,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
+  loadingOverlay: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingVertical: 10, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8, backgroundColor: '#ffffff' },
+  loadingText: { fontSize: 12, color: '#6b7280', fontWeight: '600' },
+  errorBar: { position: 'absolute', left: 16, right: 16, bottom: 16, backgroundColor: '#fee2e2', borderWidth: 1, borderColor: '#fecaca', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  errorText: { color: '#dc2626', fontSize: 12, fontWeight: '600' },
 });
