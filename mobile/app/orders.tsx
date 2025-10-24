@@ -116,7 +116,7 @@ export default function OrdersScreen() {
       <Text style={styles.emptyTitle}>{authState.isAuthenticated ? 'No Bookings Yet' : 'Login to view your bookings'}</Text>
       <Text style={styles.emptySubtitle}>
         {authState.isAuthenticated
-          ? 'Your bookings from Home Services, Events, Construction and Others will appear here.'
+          ? 'Your bookings from Home Services, Events, Construction, Salon and Others will appear here.'
           : 'Please login to sync your booking history across devices.'}
       </Text>
       {!authState.isAuthenticated ? (

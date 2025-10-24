@@ -1,10 +1,12 @@
 import { useMemo, useState, useRef, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, TextInput, Modal, ActivityIndicator, Linking } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, TextInput, Modal, ActivityIndicator, Linking, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter, useNavigation } from "expo-router";
 import LikeButton from "../components/common/LikeButton";
 import OfferCards from "../components/common/OfferCards";
 import { BASE_URL } from "../constants/api";
+import { useAuth } from "../contexts/AuthContext";
+import bookingService from "../services/bookingService";
 
 type UserType = 'normal' | 'vip';
 
@@ -32,6 +34,7 @@ export default function SalonDetailScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
   const navigation = useNavigation();
+  const { user, authState } = useAuth();
   const [salon, setSalon] = useState<Salon | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -77,6 +80,7 @@ export default function SalonDetailScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [bookingCode, setBookingCode] = useState("");
+  const [requestId, setRequestId] = useState("");
   const [showStickyHeader, setShowStickyHeader] = useState(false);
   const [faqData, setFaqData] = useState<Array<{question: string; answer: string}>>([]);
   const [faqLoading, setFaqLoading] = useState(true);
@@ -87,6 +91,19 @@ export default function SalonDetailScreen() {
   
 
   const handleBooking = () => {
+    // Check authentication first
+    if (!authState.isAuthenticated) {
+      Alert.alert(
+        "Login Required",
+        "Please login to book an appointment",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Login", onPress: () => router.push("/(auth)/login") }
+        ]
+      );
+      return;
+    }
+
     const newErrors: { name?: string; phone?: string; services?: string; date?: string; time?: string } = {};
     if (!userName.trim()) newErrors.name = "Name is required";
     if (!/^\d{10}$/.test(userPhone.trim())) newErrors.phone = "Enter valid 10-digit phone";
@@ -104,13 +121,46 @@ export default function SalonDetailScreen() {
     setShowConfirmModal(false);
     setIsLoading(true);
     
-    // Simulate API call with 2 second delay
-    setTimeout(() => {
-      const uniqueCode = Math.random().toString(36).slice(2, 8).toUpperCase();
-      setBookingCode(uniqueCode);
+    try {
+      // Generate request ID (same format as other categories)
+      const requestId = Math.random().toString(36).slice(2, 8).toUpperCase();
+      
+      // Create booking data with proper structure
+      const bookingData = {
+        orderData: {
+          userName,
+          userPhone,
+          address: salon?.address || "",
+          preferredTime: `${appointmentDate} at ${appointmentTime}`,
+          issueNotes: `Salon booking for ${salon?.name}`
+        },
+        serviceId: salon?.id || "",
+        serviceName: salon?.name || "",
+        serviceCategory: "Beauty & Salon",
+        requestId,
+        notes: `Salon booking for ${salon?.name} on ${appointmentDate} at ${appointmentTime}`
+      };
+
+      // Create booking using the service
+      const response = await bookingService.createBooking(bookingData);
+      
+      if (response.success) {
+        setRequestId(response.booking.requestId);
+        setBookingCode(response.booking.requestId);
+        setIsLoading(false);
+        setShowSuccessModal(true);
+      } else {
+        throw new Error(response.message || 'Failed to create booking');
+      }
+    } catch (error) {
+      console.error('Booking error:', error);
       setIsLoading(false);
-      setShowSuccessModal(true);
-    }, 2000);
+      Alert.alert(
+        "Booking Failed",
+        error instanceof Error ? error.message : "Failed to create booking. Please try again.",
+        [{ text: "OK" }]
+      );
+    }
   };
 
   const closeSuccessModal = () => {
@@ -382,6 +432,7 @@ export default function SalonDetailScreen() {
               placeholderTextColor="#9ca3af" 
               style={styles.input} 
               keyboardType="numeric"
+              maxLength={10}
             />
             {errors.phone ? <Text style={styles.errorText}>{errors.phone}</Text> : null}
           </View>
@@ -423,7 +474,14 @@ export default function SalonDetailScreen() {
             onPress={handleBooking} 
             style={styles.bookButton}
           >
-            <Text style={styles.bookButtonText}>Pay and Book</Text>
+            <Text style={styles.bookButtonText}>
+              {!authState.isAuthenticated 
+                ? "Login to Book Appointment" 
+                : user?.isVip 
+                  ? "Book Now (Free)" 
+                  : "Book Now (₹9)"
+              }
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -583,7 +641,18 @@ export default function SalonDetailScreen() {
                 <Text style={styles.detailLabel}>Date:</Text>
                 <Text style={styles.detailValue}>{appointmentDate}</Text>
               </View>
-              
+              <View style={styles.detailRow}>
+                <Ionicons name="time" size={16} color="#6b7280" />
+                <Text style={styles.detailLabel}>Time:</Text>
+                <Text style={styles.detailValue}>{appointmentTime}</Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Ionicons name="card" size={16} color="#6b53471" />
+                <Text style={styles.detailLabel}>Amount:</Text>
+                <Text style={[styles.detailValue, { color: "#b53471", fontWeight: "700" }]}>
+                  {user?.isVip ? "Free (VIP)" : "₹9"}
+                </Text>
+              </View>
             </View>
             
             <View style={styles.modalButtonContainer}>
@@ -645,9 +714,9 @@ export default function SalonDetailScreen() {
             
             <View style={styles.successDetailsCard}>
               <View style={styles.bookingCodeContainer}>
-                <Text style={styles.bookingCodeLabel}>Booking Code</Text>
-                <Text style={styles.bookingCodeValue}>{bookingCode}</Text>
-                <Text style={styles.bookingCodeNote}>Show this code at the salon</Text>
+                <Text style={styles.bookingCodeLabel}>Request ID</Text>
+                <Text style={styles.bookingCodeValue}>{requestId}</Text>
+                <Text style={styles.bookingCodeNote}>Show this ID at the salon</Text>
               </View>
               
               <View style={styles.contactInfoCard}>
