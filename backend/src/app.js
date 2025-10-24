@@ -15,6 +15,7 @@ const offersRouter = require('./routes/offers');
 const authRouter = require('./routes/auth');
 const subscriptionsRouter = require('./routes/subscriptions');
 const bookingsRouter = require('./routes/bookings');
+const billPaymentsRouter = require('./routes/billPayments');
 
 const app = express();
 app.use(cors());
@@ -37,8 +38,9 @@ app.use('/offers', offersRouter);
 app.use('/auth', authRouter);
 app.use('/subscriptions', subscriptionsRouter);
 app.use('/bookings', bookingsRouter);
+app.use('/bill-payments', billPaymentsRouter);
 
-const PORT = process.env.PORT ;
+const PORT = process.env.PORT || 3000;
 
 async function start() {
   try {

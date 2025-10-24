@@ -5,6 +5,7 @@ import { useNavigation, useLocalSearchParams, useRouter } from "expo-router";
 import PayBillCard from "../components/common/PayBillCard";
 import { useAuth } from "../contexts/AuthContext";
 import { BASE_URL } from "../constants/api";
+import { billPaymentService } from "../services/billPaymentService";
 
 type Restaurant = {
   id: string;
@@ -95,13 +96,47 @@ export default function DineOutScreen() {
     setShowConfirm(true);
   };
 
-  const confirmPayment = () => {
+  const confirmPayment = async () => {
     setShowConfirm(false);
     setShowProcessing(true);
-    setTimeout(() => {
+    
+    try {
+      // Check if user is authenticated
+      if (!authState.isAuthenticated) {
+        setShowProcessing(false);
+        Alert.alert('Authentication Required', 'Please login to make a payment');
+        return;
+      }
+
+      const amount = parseFloat(billAmount) || 0;
+      const discount = (amount * currentDiscountPercentage) / 100;
+      const finalAmount = amount - discount;
+
+      // Create bill payment record
+      const paymentData = {
+        category: 'food',
+        merchantName: restaurant?.name || 'Restaurant',
+        billAmount: amount,
+        discountPercentage: currentDiscountPercentage,
+        discountAmount: discount,
+        finalAmount: finalAmount,
+        paymentMethod: 'static',
+        notes: `Food bill payment at ${restaurant?.name}`
+      };
+
+      const result = await billPaymentService.createBillPayment(paymentData);
+      
+      if (result.success) {
+        setShowProcessing(false);
+        setShowSuccess(true);
+      } else {
+        throw new Error(result.message || 'Payment failed');
+      }
+    } catch (error) {
+      console.error('Payment error:', error);
       setShowProcessing(false);
-      setShowSuccess(true);
-    }, 1500);
+      Alert.alert('Payment Failed', error.message || 'Something went wrong. Please try again.');
+    }
   };
 
   if (loading) {

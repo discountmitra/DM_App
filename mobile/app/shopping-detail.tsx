@@ -6,6 +6,7 @@ import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import LikeButton from "../components/common/LikeButton";
 import { useAuth } from "../contexts/AuthContext";
 import PayBillCard from "../components/common/PayBillCard";
+import { billPaymentService } from "../services/billPaymentService";
 // Default image URL for fallback
 import { BASE_URL } from "../constants/api";
 
@@ -94,6 +95,49 @@ export default function ShoppingDetailScreen() {
   const billNum = parseFloat(billAmount) || 0;
   const discountValue = (billNum * discountPercentage) / 100;
   const finalAmount = Math.max(0, billNum - discountValue);
+
+  const confirmPayment = async () => {
+    setShowConfirm(false);
+    setIsLoading(true);
+    
+    try {
+      // Check if user is authenticated
+      if (!authState.isAuthenticated) {
+        setIsLoading(false);
+        Alert.alert('Authentication Required', 'Please login to make a payment');
+        return;
+      }
+
+      const amount = parseFloat(billAmount) || 0;
+      const discount = (amount * discountPercentage) / 100;
+      const finalAmount = amount - discount;
+
+      // Create bill payment record
+      const paymentData = {
+        category: 'shopping',
+        merchantName: item?.name || 'Shopping Store',
+        billAmount: amount,
+        discountPercentage: discountPercentage,
+        discountAmount: discount,
+        finalAmount: finalAmount,
+        paymentMethod: 'static',
+        notes: `Shopping bill payment at ${item?.name}`
+      };
+
+      const result = await billPaymentService.createBillPayment(paymentData);
+      
+      if (result.success) {
+        setIsLoading(false);
+        setShowSuccess(true);
+      } else {
+        throw new Error(result.message || 'Payment failed');
+      }
+    } catch (error) {
+      console.error('Payment error:', error);
+      setIsLoading(false);
+      Alert.alert('Payment Failed', error.message || 'Something went wrong. Please try again.');
+    }
+  };
 
   // Pay flow handled via confirm -> loading -> success modals
 
@@ -248,11 +292,7 @@ export default function ShoppingDetailScreen() {
               <TouchableOpacity style={styles.modalButtonSecondary} onPress={() => setShowConfirm(false)}>
                 <Text style={styles.modalButtonSecondaryText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.modalButtonPrimary} onPress={() => {
-                setShowConfirm(false);
-                setIsLoading(true);
-                setTimeout(() => { setIsLoading(false); setShowSuccess(true); }, 1500);
-              }}>
+              <TouchableOpacity style={styles.modalButtonPrimary} onPress={confirmPayment}>
                 <Ionicons name="checkmark-circle" size={18} color="#ffffff" />
                 <Text style={styles.modalButtonPrimaryText}>Confirm</Text>
               </TouchableOpacity>
