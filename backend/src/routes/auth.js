@@ -3,11 +3,14 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { sequelize } = require('../db');
 const Otp = require('../models/Otp');
+const { generateUniqueUserId } = require('../utils/userIdGenerator');
 
 const router = express.Router();
 
 function signToken(user) {
-  const payload = { id: user.id, phone: user.phone, name: user.name, isVip: user.isVip };
+  // Always use newId if available, otherwise fallback to id
+  const userId = user.newId || user.id;
+  const payload = { id: userId, phone: user.phone, name: user.name, isVip: user.isVip };
   return jwt.sign(payload, process.env.JWT_SECRET || 'dev_secret', { expiresIn: '30d' });
 }
 
@@ -18,12 +21,93 @@ router.post('/register', async (req, res) => {
     if (!name || !phone) return res.status(400).json({ error: 'name and phone required' });
 
     await sequelize.sync();
-    const [user] = await User.findOrCreate({ where: { phone }, defaults: { name, phone, email } });
-    if (email && !user.email) { user.email = email; await user.save(); }
+    
+    // Check if user already exists by phone first
+    let user = await User.findOne({ where: { phone } });
+    
+    if (user) {
+      // User exists with this phone, update information if needed
+      let updated = false;
+      
+      if (email && !user.email) { 
+        user.email = email; 
+        updated = true;
+      }
+      
+      if (name && user.name !== name) {
+        user.name = name;
+        updated = true;
+      }
+      
+      if (updated) {
+        await user.save();
+      }
+    } else {
+      // Check if email already exists (if provided)
+      if (email) {
+        const existingEmailUser = await User.findOne({ where: { email } });
+        if (existingEmailUser) {
+          return res.status(400).json({ error: 'Email already exists' });
+        }
+      }
+      
+      // Create new user with alphanumeric ID
+      const userId = await generateUniqueUserId(User);
+      user = await User.create({ 
+        newId: userId, 
+        name, 
+        phone, 
+        email 
+      });
+      
+      // Refresh user to ensure we have the latest data
+      user = await User.findOne({
+        where: { id: user.id },
+        attributes: ['id', 'newId', 'name', 'phone', 'email', 'isVip', 'vipExpiresAt', 'currentSubscriptionId']
+      });
+      
+      // If newId is still null, try to get it directly from the database
+      if (!user.newId) {
+        const rawUser = await sequelize.query(
+          'SELECT id, new_id, name, phone, email, "isVip", "vipExpiresAt", "currentSubscriptionId" FROM users WHERE id = ?',
+          { 
+            replacements: [user.id], 
+            type: sequelize.QueryTypes.SELECT 
+          }
+        );
+        if (rawUser.length > 0) {
+          user.newId = rawUser[0].new_id;
+        }
+      }
+    }
+    
     const token = signToken(user);
-    res.json({ token, user });
+    
+    // Return user with newId as id for frontend compatibility
+    const userResponse = {
+      id: user.newId || user.id,
+      name: user.name,
+      phone: user.phone,
+      email: user.email,
+      isVip: user.isVip,
+      vipExpiresAt: user.vipExpiresAt,
+      currentSubscriptionId: user.currentSubscriptionId
+    };
+    
+    res.json({ token, user: userResponse });
   } catch (e) {
     console.error('register error', e);
+    
+    // Handle specific error cases
+    if (e.name === 'SequelizeUniqueConstraintError') {
+      if (e.errors.some(err => err.path === 'email')) {
+        return res.status(400).json({ error: 'Email already exists' });
+      }
+      if (e.errors.some(err => err.path === 'phone')) {
+        return res.status(400).json({ error: 'Phone number already exists' });
+      }
+    }
+    
     res.status(500).json({ error: 'Failed to register' });
   }
 });
@@ -89,9 +173,27 @@ router.get('/me', async (req, res) => {
     const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
     if (!token) return res.status(401).json({ error: 'No token' });
     const payload = jwt.verify(token, process.env.JWT_SECRET || 'dev_secret');
-    const user = await User.findByPk(payload.id);
+    
+    // Try to find user by newId first, then fallback to id
+    let user = await User.findOne({ where: { newId: payload.id } });
+    if (!user) {
+      user = await User.findByPk(payload.id);
+    }
+    
     if (!user) return res.status(404).json({ error: 'User not found' });
-    res.json({ user });
+    
+    // Return user with newId as id for frontend compatibility
+    const userResponse = {
+      id: user.newId || user.id, // Prioritize newId
+      name: user.name,
+      phone: user.phone,
+      email: user.email,
+      isVip: user.isVip,
+      vipExpiresAt: user.vipExpiresAt,
+      currentSubscriptionId: user.currentSubscriptionId
+    };
+    
+    res.json({ user: userResponse });
   } catch (e) {
     return res.status(401).json({ error: 'Invalid token' });
   }

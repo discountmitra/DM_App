@@ -9,9 +9,9 @@ const UserFavorites = sequelize.define('UserFavorites', {
     allowNull: false
   },
   userId: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.STRING,
     allowNull: false,
-    comment: 'ID of the user who added the favorite'
+    comment: 'ID of the user who added the favorite (can be integer or alphanumeric)'
   },
   itemId: {
     type: DataTypes.STRING,

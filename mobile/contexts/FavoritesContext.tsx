@@ -27,7 +27,12 @@ export const FavoritesProvider: React.FC<{ children: ReactNode }> = ({ children 
   // Load favorites from API when user is authenticated
   useEffect(() => {
     if (authState.isAuthenticated) {
-      loadFavorites();
+      // Add a small delay to ensure auth state is fully settled
+      const timer = setTimeout(() => {
+        loadFavorites();
+      }, 100);
+      
+      return () => clearTimeout(timer);
     } else {
       setFavorites([]);
     }
@@ -40,10 +45,14 @@ export const FavoritesProvider: React.FC<{ children: ReactNode }> = ({ children 
     setError(null);
     try {
       const response = await favoritesService.getMyFavorites(authState.token);
-      setFavorites(response.favorites);
+      setFavorites(response.favorites || []);
     } catch (error) {
       console.error('Error loading favorites:', error);
-      setError(error instanceof Error ? error.message : 'Failed to load favorites');
+      // Don't set error for 404 or empty favorites - just show empty list
+      if (error instanceof Error && !error.message.includes('404')) {
+        setError(error.message);
+      }
+      setFavorites([]);
     } finally {
       setLoading(false);
     }

@@ -16,6 +16,7 @@ export default function CompleteProfileScreen() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [emailError, setEmailError] = useState("");
   const [phoneError, setPhoneError] = useState("");
+  const [registrationError, setRegistrationError] = useState("");
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -24,6 +25,7 @@ export default function CompleteProfileScreen() {
 
   const handleEmailChange = (text: string) => {
     setEmail(text);
+    setRegistrationError(""); // Clear registration error when user types
     if (text && !validateEmail(text)) {
       setEmailError("Please enter a valid email address");
     } else {
@@ -34,6 +36,8 @@ export default function CompleteProfileScreen() {
   const handlePhoneChange = (text: string) => {
     // Remove any non-digit characters
     const cleanedText = text.replace(/\D/g, "");
+    
+    setRegistrationError(""); // Clear registration error when user types
     
     if (cleanedText.length > 10) {
       setPhoneError("Phone number cannot exceed 10 digits");
@@ -61,11 +65,24 @@ export default function CompleteProfileScreen() {
       return;
     }
 
+    setRegistrationError(""); // Clear any previous registration error
+
     try {
       const fullName = `${firstName} ${lastName}`.trim();
       await register(fullName, `+91${phoneNumber}`, email);
     } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Failed to register');
+      // Handle specific error messages from backend
+      const errorMessage = e?.message || 'Failed to register';
+      
+      if (errorMessage.includes('Email already exists')) {
+        setEmailError('This email is already registered');
+        setRegistrationError('Please use a different email address');
+      } else if (errorMessage.includes('Phone number already exists')) {
+        setPhoneError('This phone number is already registered');
+        setRegistrationError('Please use a different phone number');
+      } else {
+        setRegistrationError(errorMessage);
+      }
     }
   };
 
@@ -109,7 +126,7 @@ export default function CompleteProfileScreen() {
         {/* Email Field */}
         <View style={styles.fieldContainer}>
           <TextInput
-            style={[styles.input, styles.fullWidthInput]}
+            style={[styles.input, styles.fullWidthInput, emailError ? styles.inputError : null]}
             placeholder="E-mail"
             value={email}
             onChangeText={handleEmailChange}
@@ -122,7 +139,7 @@ export default function CompleteProfileScreen() {
         {/* Phone Number Field */}
         <View style={styles.fieldContainer}>
           <TextInput
-            style={[styles.input, styles.fullWidthInput]}
+            style={[styles.input, styles.fullWidthInput, phoneError ? styles.inputError : null]}
             placeholder="Phone number"
             value={phoneNumber}
             onChangeText={handlePhoneChange}
@@ -136,6 +153,13 @@ export default function CompleteProfileScreen() {
         <Text style={styles.disclaimerText}>
           We may send promotions related to our services - you can unsubscribe anytime in Communication preferences under your Profile.
         </Text>
+
+        {/* Registration Error Display */}
+        {registrationError ? (
+          <View style={styles.errorContainer}>
+            <Text style={styles.registrationErrorText}>{registrationError}</Text>
+          </View>
+        ) : null}
       </View>
 
       {/* Done Button */}
@@ -203,6 +227,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "transparent",
   },
+  inputError: {
+    borderColor: "#DC2626",
+    backgroundColor: "#FEF2F2",
+  },
   fullWidthInput: {
     width: "100%",
   },
@@ -211,6 +239,20 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
     marginLeft: 4,
+  },
+  errorContainer: {
+    backgroundColor: "#FEF2F2",
+    borderColor: "#FECACA",
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: Spacing.md,
+    marginTop: Spacing.md,
+  },
+  registrationErrorText: {
+    color: "#DC2626",
+    fontSize: 14,
+    textAlign: "center",
+    fontWeight: "500",
   },
   disclaimerText: {
     fontSize: 12,

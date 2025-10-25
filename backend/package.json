@@ -20,7 +20,9 @@
     "check:expired": "node scripts/checkExpiredSubscriptions.js",
     "migrate:user": "node scripts/migrateUserTable.js",
     "migrate:bill-payments": "node scripts/migrateBillPayments.js",
-    "migrate:user-favorites": "node scripts/migrateUserFavorites.js"
+    "migrate:user-favorites": "node scripts/migrateUserFavorites.js",
+    "migrate:user-ids": "node scripts/migrateUserIdsV3.js",
+    "migrate:favorites-userid": "node scripts/migrateUserFavoritesUserId.js"
   },
   "author": "Discount Mitra Team",
   "license": "MIT",

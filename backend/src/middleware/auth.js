@@ -16,8 +16,12 @@ const authenticateToken = async (req, res, next) => {
     // Verify the token
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
     
-    // Get user details
-    const user = await User.findByPk(decoded.id);
+    // Try to find user by newId first, then fallback to id
+    let user = await User.findOne({ where: { newId: decoded.id } });
+    if (!user) {
+      user = await User.findByPk(decoded.id);
+    }
+    
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -25,9 +29,10 @@ const authenticateToken = async (req, res, next) => {
       });
     }
 
-    // Add user info to request
+    // Add user info to request - use newId if available
+    const userId = user.newId || user.id;
     req.user = {
-      id: user.id,
+      id: userId,
       phone: user.phone,
       isVip: user.isVip
     };

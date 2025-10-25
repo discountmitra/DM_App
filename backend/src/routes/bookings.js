@@ -5,7 +5,7 @@ const User = require('../models/User');
 const { v4: uuidv4 } = require('uuid');
 
 // Middleware to authenticate JWT token
-const authenticateToken = (req, res, next) => {
+const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
@@ -14,13 +14,27 @@ const authenticateToken = (req, res, next) => {
   }
 
   const jwt = require('jsonwebtoken');
-  jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key', (err, user) => {
-    if (err) {
-      return res.status(403).json({ error: 'Invalid or expired token' });
+  
+  try {
+    const payload = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    
+    // Try to find user by newId first, then fallback to id
+    let user = await User.findOne({ where: { newId: payload.id } });
+    if (!user) {
+      user = await User.findByPk(payload.id);
     }
-    req.user = user;
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    // Use the newId if available, otherwise fallback to id
+    const userId = user.newId || user.id;
+    req.user = { id: userId };
     next();
-  });
+  } catch (err) {
+    return res.status(403).json({ error: 'Invalid or expired token' });
+  }
 };
 
 // Create a new booking

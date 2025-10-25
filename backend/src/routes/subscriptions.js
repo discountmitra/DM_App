@@ -6,7 +6,7 @@ const { sequelize } = require('../db');
 const jwt = require('jsonwebtoken');
 
 // Middleware to verify JWT token
-const authenticateToken = (req, res, next) => {
+const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
@@ -14,11 +14,26 @@ const authenticateToken = (req, res, next) => {
     return res.status(401).json({ error: 'Access token required' });
   }
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) return res.status(403).json({ error: 'Invalid token' });
-    req.user = user;
+  try {
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // Try to find user by newId first, then fallback to id
+    let user = await User.findOne({ where: { newId: payload.id } });
+    if (!user) {
+      user = await User.findByPk(payload.id);
+    }
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    // Use the newId if available, otherwise fallback to id
+    const userId = user.newId || user.id;
+    req.user = { id: userId, phone: user.phone, isVip: user.isVip };
     next();
-  });
+  } catch (err) {
+    return res.status(403).json({ error: 'Invalid token' });
+  }
 };
 
 // Get user's current subscription status

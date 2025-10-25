@@ -118,13 +118,16 @@ export default function ProfileScreen() {
 
         <TouchableOpacity style={styles.card} onPress={() => {
           router.push({
-            pathname: '/referrals'
+            pathname: '/coming-soon'
           });
         }}>
           <View style={styles.cardIcon}>
             <Image source={require('../../assets/referral.png')} style={styles.cardImage} />
           </View>
           <Text style={styles.cardText}>Referrals</Text>
+          <View style={styles.comingSoonBadge}>
+            <Text style={styles.comingSoonText}>Coming Soon</Text>
+          </View>
         </TouchableOpacity>
       </View>
 
@@ -137,36 +140,6 @@ export default function ProfileScreen() {
       >
 
 
-
-        <TouchableOpacity style={styles.settingItem} onPress={() => {
-          router.push({
-            pathname: '/notifications'
-          });
-        }}>
-          <View style={styles.settingLeft}>
-            <View style={[styles.settingIconContainer, { backgroundColor: "#8b5cf615" }]}>
-              <Ionicons name="notifications-outline" size={20} color="#8b5cf6" />
-            </View>
-            <View style={styles.settingText}>
-              <Text style={styles.settingTitle}>Notifications</Text>
-              <Text style={styles.settingDescription}>Manage your notifications</Text>
-            </View>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.settingItem}>
-          <View style={styles.settingLeft}>
-            <View style={[styles.settingIconContainer, { backgroundColor: "#3b82f615" }]}>
-              <Ionicons name="language-outline" size={20} color="#3b82f6" />
-            </View>
-            <View style={styles.settingText}>
-              <Text style={styles.settingTitle}>Language</Text>
-              <Text style={styles.settingDescription}>Change app language</Text>
-            </View>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
-        </TouchableOpacity>
 
         <TouchableOpacity style={styles.settingItem} onPress={() => router.push('/vip-subscription')}>
           <View style={styles.settingLeft}>
@@ -476,6 +449,20 @@ const styles = StyleSheet.create({
   badgeText: {
     color: "#fff",
     fontSize: 12,
+    fontWeight: "600",
+  },
+  comingSoonBadge: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    backgroundColor: "#10b981",
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  comingSoonText: {
+    color: "#fff",
+    fontSize: 10,
     fontWeight: "600",
   },
 });

@@ -54,7 +54,7 @@ export default function LoginScreen() {
     } catch (e: any) {
       // Check if it's a "User not found" error
       if (e?.message?.includes("User not found") || e?.message?.includes("404")) {
-        setLoginError("No account found with this number, please register");
+        setLoginError("No account found with this number. Please register first.");
       } else {
         setLoginError(e?.message || "Failed to send OTP");
       }
