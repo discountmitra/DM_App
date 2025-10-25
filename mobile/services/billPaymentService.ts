@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BASE_URL } from '../constants/api';
 
 interface BillPaymentData {
@@ -53,9 +52,8 @@ interface BillPaymentHistoryResponse {
 }
 
 export const billPaymentService = {
-  async createBillPayment(paymentData: BillPaymentData): Promise<BillPaymentResponse> {
+  async createBillPayment(paymentData: BillPaymentData, token: string): Promise<BillPaymentResponse> {
     try {
-      const token = await AsyncStorage.getItem('token');
       if (!token) {
         throw new Error('No authentication token found');
       }
@@ -92,9 +90,8 @@ export const billPaymentService = {
     }
   },
 
-  async getBillPaymentHistory(page: number = 1, limit: number = 10, category?: string): Promise<BillPaymentHistoryResponse> {
+  async getBillPaymentHistory(token: string, page: number = 1, limit: number = 10, category?: string): Promise<BillPaymentHistoryResponse> {
     try {
-      const token = await AsyncStorage.getItem('token');
       if (!token) {
         throw new Error('No authentication token found');
       }
@@ -139,9 +136,8 @@ export const billPaymentService = {
     }
   },
 
-  async getBillPaymentDetails(paymentId: number) {
+  async getBillPaymentDetails(paymentId: number, token: string) {
     try {
-      const token = await AsyncStorage.getItem('token');
       if (!token) {
         throw new Error('No authentication token found');
       }
@@ -177,9 +173,8 @@ export const billPaymentService = {
     }
   },
 
-  async getPaymentStats(category?: string) {
+  async getPaymentStats(token: string, category?: string) {
     try {
-      const token = await AsyncStorage.getItem('token');
       if (!token) {
         throw new Error('No authentication token found');
       }

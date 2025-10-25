@@ -6,7 +6,6 @@ import CategoryPreview from "../../components/home/CategoryPreview";
 import { Spacing, Colors } from "../../theme";
 import { useNavigation, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Animated, Modal } from 'react-native';
 import CustomTopBar from "@/components/home/CustomTopBar";
 import { Ionicons } from "@expo/vector-icons";
@@ -28,18 +27,8 @@ export default function HomeScreen() {
     navigation.setOptions({ headerShown: false }); // Hide default header
   }, [navigation]);
 
-  useEffect(() => {
-    const maybeShowWelcome = async () => {
-      const flag = await AsyncStorage.getItem('SHOW_WELCOME_AFTER_PURCHASE');
-      if (flag === '1') {
-        setShowWelcome(true);
-        AsyncStorage.removeItem('SHOW_WELCOME_AFTER_PURCHASE');
-        confettiAnim.setValue(0);
-        Animated.timing(confettiAnim, { toValue: 1, duration: 800, useNativeDriver: true }).start();
-      }
-    };
-    maybeShowWelcome();
-  }, []);
+  // Welcome animation removed - no longer needed for deployment
+  // VIP status is now managed by backend and AuthContext
 
   const handleUpgrade = () => {
     router.push('/vip-subscription');

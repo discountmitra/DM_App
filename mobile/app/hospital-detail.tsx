@@ -240,7 +240,7 @@ export default function HospitalDetailScreen() {
         amountPaid: finalPrice // Pass specific calculated pricing
       };
 
-      const result = await bookingService.createBooking(bookingData);
+      const result = await bookingService.createBooking(bookingData, authState.token!);
       
       if (result.success) {
         setBookingCode(requestId);

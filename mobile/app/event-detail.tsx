@@ -241,7 +241,7 @@ export default function EventDetailScreen() {
         notes: `Date: ${eventDate}, Time: ${eventTime}, Venue: ${venue || 'Not specified'}, Requirements: ${specialRequirements || 'None'}`
       };
 
-      const result = await bookingService.createBooking(bookingData);
+      const result = await bookingService.createBooking(bookingData, authState.token!);
       setBookingId(result.booking.requestId);
       setIsLoading(false);
       setShowSuccessModal(true);

@@ -142,7 +142,7 @@ export default function SalonDetailScreen() {
       };
 
       // Create booking using the service
-      const response = await bookingService.createBooking(bookingData);
+      const response = await bookingService.createBooking(bookingData, authState.token!);
       
       if (response.success) {
         setRequestId(response.booking.requestId);

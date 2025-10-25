@@ -47,7 +47,7 @@ export default function OrdersScreen() {
       setIsLoading(true);
       setError("");
       try {
-        const res = await bookingService.getMyBookings();
+        const res = await bookingService.getMyBookings(authState.token!);
         const list = (res?.bookings || res || []) as BookingItem[];
         const sorted = list.sort((a, b) => new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime());
         setBookings(sorted);

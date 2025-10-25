@@ -124,7 +124,7 @@ export default function ShoppingDetailScreen() {
         notes: `Shopping bill payment at ${item?.name}`
       };
 
-      const result = await billPaymentService.createBillPayment(paymentData);
+      const result = await billPaymentService.createBillPayment(paymentData, authState.token!);
       
       if (result.success) {
         setIsLoading(false);

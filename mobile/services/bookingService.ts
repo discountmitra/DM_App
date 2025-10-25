@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BASE_URL } from '../constants/api';
 
 export interface BookingData {
@@ -32,18 +31,13 @@ export interface BookingResponse {
 }
 
 class BookingService {
-  private async getAuthToken(): Promise<string | null> {
-    try {
-      return await AsyncStorage.getItem('token');
-    } catch (error) {
-      console.error('Error getting auth token:', error);
-      return null;
-    }
+  private getAuthToken(): string | null {
+    // This will be passed from the calling component via AuthContext
+    return null; // Will be overridden by the calling component
   }
 
-  async createBooking(bookingData: BookingData): Promise<BookingResponse> {
+  async createBooking(bookingData: BookingData, token: string): Promise<BookingResponse> {
     try {
-      const token = await this.getAuthToken();
       if (!token) {
         throw new Error('Please login to book services');
       }
@@ -85,9 +79,8 @@ class BookingService {
     }
   }
 
-  async getMyBookings(): Promise<any[]> {
+  async getMyBookings(token: string): Promise<any[]> {
     try {
-      const token = await this.getAuthToken();
       if (!token) {
         throw new Error('No authentication token found');
       }
@@ -125,9 +118,8 @@ class BookingService {
     }
   }
 
-  async getBookingById(bookingId: string): Promise<any> {
+  async getBookingById(bookingId: string, token: string): Promise<any> {
     try {
-      const token = await this.getAuthToken();
       if (!token) {
         throw new Error('No authentication token found');
       }

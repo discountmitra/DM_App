@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, LayoutAnimation, Modal, ActivityIndicator, Animated, TouchableWithoutFeedback, TextInput } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRouter } from "expo-router";
@@ -90,7 +89,7 @@ export default function VipSubscriptionScreen() {
     const fetchSubscriptionStatus = async () => {
       if (isVip) {
         try {
-          const status = await subscriptionService.getSubscriptionStatus();
+          const status = await subscriptionService.getSubscriptionStatus(authState.token!);
           setSubscriptionData(status.currentSubscription);
         } catch (error) {
           console.error('Failed to fetch subscription status:', error);
@@ -163,7 +162,7 @@ export default function VipSubscriptionScreen() {
       const finalPrice = Math.max(0, Math.round(selectedPlan.price * (1 - appliedPct)));
 
       // Real subscription process
-      const result = await subscriptionService.purchaseSubscription({
+      const result = await subscriptionService.purchaseSubscription(authState.token!, {
         planId: selectedPlan.id,
         planName: selectedPlan.name,
         amountPaid: finalPrice,
@@ -179,11 +178,10 @@ export default function VipSubscriptionScreen() {
       await refreshUserData();
       
       // Refresh subscription data
-      const status = await subscriptionService.getSubscriptionStatus();
+      const status = await subscriptionService.getSubscriptionStatus(authState.token!);
       setSubscriptionData(status.currentSubscription);
 
-      // Flag home to show welcome animation, then navigate to Home tab
-      try { await AsyncStorage.setItem('SHOW_WELCOME_AFTER_PURCHASE', '1'); } catch {}
+      // Navigate to Home tab after successful purchase
       try { router.replace('/(tabs)'); } catch { router.back(); }
     } catch (error) {
       setIsLoading(false);
@@ -206,7 +204,7 @@ export default function VipSubscriptionScreen() {
 
     try {
       // Real cancellation process with user's reason
-      const result = await subscriptionService.cancelSubscription(cancellationReason.trim());
+      const result = await subscriptionService.cancelSubscription(authState.token!, cancellationReason.trim());
       setIsLoading(false);
       console.log('Subscription cancelled:', result);
       

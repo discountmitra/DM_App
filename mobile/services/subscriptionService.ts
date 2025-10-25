@@ -1,5 +1,4 @@
 import { BASE_URL } from '../constants/api';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface SubscriptionStatus {
   isVip: boolean;
@@ -26,25 +25,15 @@ export interface SubscriptionHistory {
 }
 
 class SubscriptionService {
-  private async getAuthHeaders(): Promise<HeadersInit> {
-    const token = await this.getToken();
+  private getAuthHeaders(token: string): HeadersInit {
     return {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`
     };
   }
 
-  private async getToken(): Promise<string> {
-    // Get token from AsyncStorage
-    const token = await AsyncStorage.getItem('token');
-    if (!token) {
-      throw new Error('No authentication token found');
-    }
-    return token;
-  }
-
-  async getSubscriptionStatus(): Promise<SubscriptionStatus> {
-    const headers = await this.getAuthHeaders();
+  async getSubscriptionStatus(token: string): Promise<SubscriptionStatus> {
+    const headers = this.getAuthHeaders(token);
     const response = await fetch(`${BASE_URL}/subscriptions/status`, {
       method: 'GET',
       headers
@@ -57,7 +46,7 @@ class SubscriptionService {
     return await response.json();
   }
 
-  async purchaseSubscription(planData: {
+  async purchaseSubscription(token: string, planData: {
     planId: string;
     planName: string;
     amountPaid: number;
@@ -65,7 +54,7 @@ class SubscriptionService {
     discountApplied?: number;
     couponCode?: string;
   }): Promise<{ success: boolean; subscription: any }> {
-    const headers = await this.getAuthHeaders();
+    const headers = this.getAuthHeaders(token);
     const response = await fetch(`${BASE_URL}/subscriptions/purchase`, {
       method: 'POST',
       headers,
@@ -80,8 +69,8 @@ class SubscriptionService {
     return await response.json();
   }
 
-  async cancelSubscription(reason?: string): Promise<{ success: boolean; message: string }> {
-    const headers = await this.getAuthHeaders();
+  async cancelSubscription(token: string, reason?: string): Promise<{ success: boolean; message: string }> {
+    const headers = this.getAuthHeaders(token);
     const response = await fetch(`${BASE_URL}/subscriptions/cancel`, {
       method: 'POST',
       headers,
@@ -96,8 +85,8 @@ class SubscriptionService {
     return await response.json();
   }
 
-  async getSubscriptionHistory(): Promise<{ subscriptions: SubscriptionHistory[] }> {
-    const headers = await this.getAuthHeaders();
+  async getSubscriptionHistory(token: string): Promise<{ subscriptions: SubscriptionHistory[] }> {
+    const headers = this.getAuthHeaders(token);
     const response = await fetch(`${BASE_URL}/subscriptions/history`, {
       method: 'GET',
       headers

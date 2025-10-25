@@ -166,7 +166,7 @@ export default function EventRequestForm(props: Props) {
         notes: props.type === 'chef' ? `Venue: ${venue}, Days: ${days}` : `Event Type: ${eventType}, Budget: ${budget || 'Not specified'}`
       };
 
-      const result = await bookingService.createBooking(bookingData);
+      const result = await bookingService.createBooking(bookingData, authState.token!);
       setRequestCode(result.booking.requestId);
       setIsLoading(false);
       setShowSuccessModal(true);

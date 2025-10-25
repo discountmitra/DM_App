@@ -124,7 +124,7 @@ export default function DineOutScreen() {
         notes: `Food bill payment at ${restaurant?.name}`
       };
 
-      const result = await billPaymentService.createBillPayment(paymentData);
+      const result = await billPaymentService.createBillPayment(paymentData, authState.token!);
       
       if (result.success) {
         setShowProcessing(false);

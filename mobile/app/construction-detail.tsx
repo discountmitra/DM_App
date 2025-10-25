@@ -216,7 +216,7 @@ export default function ConstructionDetailScreen() {
         notes: additionalNotes
       };
 
-      const result = await bookingService.createBooking(bookingData);
+      const result = await bookingService.createBooking(bookingData, authState.token!);
       setRequestId(result.booking.requestId);
       setIsLoading(false);
       setShowSuccessModal(true);

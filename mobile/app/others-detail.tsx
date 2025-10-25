@@ -153,7 +153,7 @@ export default function OthersDetailScreen() {
         notes: `Custom service request: ${formData.serviceType}`,
       };
 
-      const result = await bookingService.createBooking(bookingData);
+      const result = await bookingService.createBooking(bookingData, authState.token!);
       // Prefer the generated ID to ensure immediate display
       setRequestId(generatedRequestId);
       setIsLoading(false);

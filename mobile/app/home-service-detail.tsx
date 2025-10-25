@@ -181,7 +181,7 @@ export default function HomeServiceDetailScreen() {
       };
 
       // Create booking via API
-      const result = await bookingService.createBooking(bookingData);
+      const result = await bookingService.createBooking(bookingData, authState.token!);
       
       if (result.success) {
         setReqId(requestId);
