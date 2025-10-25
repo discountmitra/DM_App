@@ -19,7 +19,8 @@
     "seed:offers": "node scripts/seedOffers.js",
     "check:expired": "node scripts/checkExpiredSubscriptions.js",
     "migrate:user": "node scripts/migrateUserTable.js",
-    "migrate:bill-payments": "node scripts/migrateBillPayments.js"
+    "migrate:bill-payments": "node scripts/migrateBillPayments.js",
+    "migrate:user-favorites": "node scripts/migrateUserFavorites.js"
   },
   "author": "Discount Mitra Team",
   "license": "MIT",

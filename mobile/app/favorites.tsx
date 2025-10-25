@@ -40,7 +40,7 @@ export default function FavoritesScreen() {
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(item => 
-        item.name?.toLowerCase().includes(query) ||
+        item.itemName?.toLowerCase().includes(query) ||
         item.description?.toLowerCase().includes(query) ||
         item.subcategory?.toLowerCase().includes(query)
       );
@@ -53,23 +53,23 @@ export default function FavoritesScreen() {
     // Navigate to appropriate detail page based on category
     switch (item.category) {
       case 'Food':
-        router.push({ pathname: "/restaurant-detail", params: { id: item.id } });
+        router.push({ pathname: "/restaurant-detail", params: { id: item.itemId } });
         break;
       case 'Healthcare':
-        router.push({ pathname: "/hospital-detail", params: { id: item.id, image: item.image || "" } });
+        router.push({ pathname: "/hospital-detail", params: { id: item.itemId, image: item.image || "" } });
         break;
       case 'Home Services':
-        router.push({ pathname: "/home-service-detail", params: { id: item.id, name: item.name, desc: item.description, category: item.subcategory, price: item.price, discount: "10%", image: item.image || "" } });
+        router.push({ pathname: "/home-service-detail", params: { id: item.itemId, name: item.itemName, desc: item.description, category: item.subcategory, price: item.price, discount: "10%", image: item.image || "" } });
         break;
       case 'Beauty':
-        router.push({ pathname: "/salon-detail", params: { id: item.id, name: item.name, address: item.address, rating: item.rating?.toString() || "4.8", reviews: item.reviews?.toString() || "234", image: item.image || "" } });
+        router.push({ pathname: "/salon-detail", params: { id: item.itemId, name: item.itemName, address: item.address, rating: item.rating?.toString() || "4.8", reviews: item.reviews?.toString() || "234", image: item.image || "" } });
         break;
       case 'Events':
-        const eventId = item.name.toLowerCase().replace(/\s+/g, '-');
+        const eventId = item.itemName.toLowerCase().replace(/\s+/g, '-');
         router.push({ pathname: "/event-detail", params: { eventId, image: item.image || "" } });
         break;
       case 'Construction':
-        const constructionId = item.name.toLowerCase().replace(/\s+/g, '-');
+        const constructionId = item.itemName.toLowerCase().replace(/\s+/g, '-');
         router.push({ pathname: "/construction-detail", params: { constructionId, image: item.image || "" } });
         break;
       default:
@@ -97,13 +97,26 @@ export default function FavoritesScreen() {
           <Text style={styles.categoryBadgeText}>{item.category}</Text>
         </View>
         <LikeButton 
-          item={item}
+          item={{
+            id: item.itemId,
+            name: item.itemName,
+            category: item.category,
+            subcategory: item.subcategory,
+            image: item.image,
+            description: item.description,
+            price: item.price,
+            rating: item.rating,
+            reviews: item.reviews,
+            location: item.location,
+            address: item.address,
+            phone: item.phone,
+          }}
           style={styles.favoriteButton}
         />
       </View>
       
       <View style={styles.cardContent}>
-        <Text style={styles.itemName} numberOfLines={2}>{item.name}</Text>
+        <Text style={styles.itemName} numberOfLines={2}>{item.itemName}</Text>
         <Text style={styles.itemDescription} numberOfLines={2}>
           {item.description || item.subcategory || "No description available"}
         </Text>

@@ -6,6 +6,7 @@ import { BASE_URL } from '../constants/api';
 type AuthState = {
   isAuthenticated: boolean;
   isLoading: boolean;
+  token: string | null;
   user: {
     phone: string;
     name?: string;
@@ -28,6 +29,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authState, setAuthState] = useState<AuthState>({
     isAuthenticated: false,
     isLoading: true,
+    token: null,
     user: null,
   });
   const router = useRouter();
@@ -52,12 +54,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setAuthState({
           isAuthenticated: true,
           isLoading: false,
+          token,
           user,
         });
       } else {
         setAuthState({
           isAuthenticated: false,
           isLoading: false,
+          token: null,
           user: null,
         });
       }
@@ -66,6 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setAuthState({
         isAuthenticated: false,
         isLoading: false,
+        token: null,
         user: null,
       });
     }
@@ -81,7 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const json = await res.json();
     await AsyncStorage.setItem('token', json.token);
     await AsyncStorage.setItem('user', JSON.stringify(json.user));
-    setAuthState({ isAuthenticated: true, isLoading: false, user: json.user });
+    setAuthState({ isAuthenticated: true, isLoading: false, token: json.token, user: json.user });
     router.replace('/(tabs)');
   };
 
@@ -107,7 +112,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const json = await res.json();
     await AsyncStorage.setItem('token', json.token);
     await AsyncStorage.setItem('user', JSON.stringify(json.user));
-    setAuthState({ isAuthenticated: true, isLoading: false, user: json.user });
+    setAuthState({ isAuthenticated: true, isLoading: false, token: json.token, user: json.user });
     router.replace('/(tabs)');
   };
 
@@ -115,7 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await AsyncStorage.removeItem('user');
       await AsyncStorage.removeItem('token');
-      setAuthState({ isAuthenticated: false, isLoading: false, user: null });
+      setAuthState({ isAuthenticated: false, isLoading: false, token: null, user: null });
       router.replace('/login');
     } catch (error) {
       console.error('Error during logout:', error);
