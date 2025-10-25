@@ -14,6 +14,7 @@ export interface BookingData {
   serviceCategory: string;
   requestId: string;
   notes?: string;
+  amountPaid?: number;
 }
 
 export interface BookingResponse {

@@ -10,6 +10,8 @@ import {
   Modal,
   ActivityIndicator,
   Animated,
+  Alert,
+  TouchableWithoutFeedback,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter, useNavigation } from "expo-router";
@@ -20,6 +22,8 @@ import { useAuth } from "../contexts/AuthContext";
 import LikeButton from "../components/common/LikeButton";
 import { LinearGradient } from 'expo-linear-gradient';
 import OfferCards from "../components/common/OfferCards";
+import bookingService from "../services/bookingService";
+import { calculateHealthcarePricing } from "../constants/healthcarePricing";
 // FAQ data now fetched from backend API
 
 export default function HospitalDetailScreen() {
@@ -49,8 +53,8 @@ export default function HospitalDetailScreen() {
     pet?: string;
   }>({});
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [bookingCode, setBookingCode] = useState("");
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -119,6 +123,12 @@ export default function HospitalDetailScreen() {
   
   const displayImage = headerImage || (hospital?.image || "");
 
+  // Calculate healthcare pricing based on the specific pricing data
+  const healthcarePricing = useMemo(() => {
+    if (!hospital) return { normalPrice: 0, vipPrice: 0, displayText: "Free", originalPrice: 0, discount: 0 };
+    return calculateHealthcarePricing(hospital.name, hospital.location || "", isVip);
+  }, [hospital, isVip]);
+
   if (loading) {
     return (
       <View style={[styles.container, { alignItems: 'center', justifyContent: 'center' }]}>
@@ -155,6 +165,12 @@ export default function HospitalDetailScreen() {
   };
 
   const handleBook = () => {
+    // Check if user is authenticated
+    if (!authState.isAuthenticated) {
+      Alert.alert('Authentication Required', 'Please login to book an appointment');
+      return;
+    }
+
     const newErrors: {
       name?: string;
       phone?: string;
@@ -174,22 +190,68 @@ export default function HospitalDetailScreen() {
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 
-    // Directly show confirmation modal (no in-app fee). OP amount is payable at hospital.
+    console.log('User type:', isVip ? 'VIP' : 'Normal');
+    console.log('Healthcare pricing:', healthcarePricing);
+
+    // Show payment modal for normal users, confirmation modal for VIP users
+    if (isVip) {
+      console.log('Showing confirmation modal for VIP user');
+      setShowConfirmModal(true);
+    } else {
+      console.log('Showing payment modal for normal user');
+      setShowPaymentModal(true);
+    }
+  };
+
+  const handlePaymentContinue = () => {
+    setShowPaymentModal(false);
     setShowConfirmModal(true);
   };
 
+  const handleUpgradeToVip = () => {
+    setShowPaymentModal(false);
+    router.push('/vip-subscription');
+  };
 
   const confirmBooking = async () => {
     setShowConfirmModal(false);
-    setIsLoading(true);
+    
+    try {
+      // Generate request ID (same format as other categories)
+      const requestId = Math.random().toString(36).slice(2, 8).toUpperCase();
+      
+      // Use the calculated healthcare pricing based on user type
+      const finalPrice = isVip ? healthcarePricing.vipPrice : healthcarePricing.normalPrice;
+      
+      // Create booking data with proper structure
+      const bookingData = {
+        orderData: {
+          userName: patientName,
+          userPhone: patientPhone,
+          address: hospital.location || "",
+          preferredTime: isPharmacy ? "Immediate" : preferredDate,
+          issueNotes: `${notes}${isYaminiVeterinary ? ` | Pet Type: ${petType}` : ''}${!isPharmacy ? ` | Age: ${patientAge}` : ''}`
+        },
+        serviceId: hospital.id,
+        serviceName: hospital.name,
+        serviceCategory: "Healthcare",
+        requestId,
+        notes: `Healthcare booking for ${hospital.name} - ${hospital.category}`,
+        amountPaid: finalPrice // Pass specific calculated pricing
+      };
 
-    // Simulate API call with 2 second delay
-    setTimeout(() => {
-      const uniqueCode = Math.random().toString(36).slice(2, 8).toUpperCase();
-      setBookingCode(uniqueCode);
-      setIsLoading(false);
-      setShowSuccessModal(true);
-    }, 2000);
+      const result = await bookingService.createBooking(bookingData);
+      
+      if (result.success) {
+        setBookingCode(requestId);
+        setShowSuccessModal(true);
+      } else {
+        throw new Error(result.message || 'Booking failed');
+      }
+    } catch (error: any) {
+      console.error('Booking error:', error);
+      Alert.alert('Booking Failed', error.message || 'Something went wrong. Please try again.');
+    }
   };
 
   const closeSuccessModal = () => {
@@ -509,25 +571,15 @@ export default function HospitalDetailScreen() {
           </View>
           <TouchableOpacity style={styles.bookBtn} onPress={handleBook}>
             <Ionicons name={hospital.category === 'Pharmacy' ? 'send' : 'calendar'} size={16} color="#fff" />
-            {hospital.category === 'Pharmacy' ? (
+            {!authState.isAuthenticated ? (
+              <Text style={styles.bookBtnText}>Login to Book</Text>
+            ) : hospital.category === 'Pharmacy' ? (
               <Text style={styles.bookBtnText}>Send Request</Text>
             ) : (
               <View style={styles.bookBtnContentRow}>
-                <Text style={styles.bookBtnText}>Book OP</Text>
-                {isVip ? (
-                  <View style={styles.priceRow}>
-                    {hospital.bookingPay > 0 && (
-                      <Text style={styles.originalPrice}>₹{hospital.bookingPay}</Text>
-                    )}
-                    {hospital.bookingCashback > 0 && (
-                      <Text style={styles.vipGlowPrice}>₹{hospital.bookingPay - hospital.bookingCashback}</Text>
-                    )}
-                  </View>
-                ) : (
-                  hospital.bookingPay > 0 && (
-                    <Text style={styles.normalPriceInline}>– ₹{hospital.bookingPay}</Text>
-                  )
-                )}
+                <Text style={styles.bookBtnText}>
+                  {isVip ? `Book OP (${healthcarePricing.displayText})` : `Book OP (${healthcarePricing.displayText})`}
+                </Text>
               </View>
             )}
           </TouchableOpacity>
@@ -597,7 +649,7 @@ export default function HospitalDetailScreen() {
               <View style={styles.vipPromotionCard}>
                 <Ionicons name="star" size={16} color="#fbbf24" />
                 <Text style={styles.vipPromotionCardText}>
-                  You can get this for free using VIP
+                  You can get extra discount with VIP
                 </Text>
               </View>
             )}
@@ -630,7 +682,7 @@ export default function HospitalDetailScreen() {
                   <Ionicons name="cash" size={16} color="#6b7280" />
                   <Text style={styles.detailLabel}>OP Fee:</Text>
                   <Text style={styles.detailValue}>
-                    {userMode === 'vip' ? (hospital.bookingCashback > 0 ? `₹${hospital.bookingPay - hospital.bookingCashback}` : 'As per hospital') : (hospital.bookingPay > 0 ? `₹${hospital.bookingPay}` : 'As per hospital')}
+                    {healthcarePricing.displayText}
                   </Text>
                 </View>
               )}
@@ -658,19 +710,63 @@ export default function HospitalDetailScreen() {
         </View>
       </Modal>
 
-      <Modal visible={isLoading} transparent={true} animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.loadingModalCard}>
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#ef4444" />
-              <Text style={styles.loadingText}>Processing your booking...</Text>
-              <Text style={styles.loadingSubtext}>
-                Please wait while we confirm your appointment
+      {/* Payment Popup for Normal Users */}
+      {showPaymentModal && (
+        <View style={styles.paymentPopupOverlay}>
+          <TouchableWithoutFeedback onPress={() => setShowPaymentModal(false)}>
+            <View style={StyleSheet.absoluteFill} />
+          </TouchableWithoutFeedback>
+          <View style={styles.paymentPopupContainer}>
+            <View style={styles.paymentPopupHeader}>
+              <TouchableOpacity 
+                style={styles.paymentCloseButton}
+                onPress={() => setShowPaymentModal(false)}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="close" size={24} color="#6b7280" />
+              </TouchableOpacity>
+              <Ionicons name="card" size={32} color="#3b82f6" />
+              <Text style={styles.paymentPopupTitle}>Payment Required</Text>
+              <Text style={styles.paymentPopupSubtitle}>
+                Choose your payment option for request
               </Text>
+            </View>
+
+            <View style={styles.paymentPricingInfo}>
+              <View style={styles.paymentPriceRow}>
+                <Text style={styles.paymentNormalPrice}>{healthcarePricing.displayText}</Text>
+                <View style={styles.paymentVipPriceLocked}>
+                  <Ionicons name="lock-closed" size={12} color="#9ca3af" />
+                  <Text style={styles.paymentVipPriceText}>VIP: {healthcarePricing.vipPrice === 0 ? 'Free' : healthcarePricing.displayText}</Text>
+                  <Text style={styles.paymentSavingsText}>Save ₹{healthcarePricing.originalPrice - healthcarePricing.vipPrice}</Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.paymentPopupButtons}>
+              <TouchableOpacity 
+                style={styles.paymentContinueButton} 
+                onPress={handlePaymentContinue}
+              >
+                <Text style={styles.paymentContinueText}>Continue with {healthcarePricing.displayText}</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.paymentUpgradeButton} 
+                onPress={handleUpgradeToVip}
+              >
+                <LinearGradient
+                  colors={['#f59e0b', '#d97706']}
+                  style={styles.paymentUpgradeGradient}
+                >
+                  <Ionicons name="star" size={16} color="#fff" />
+                  <Text style={styles.paymentUpgradeText}>Upgrade to VIP</Text>
+                </LinearGradient>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
-      </Modal>
+      )}
 
       <Modal
         visible={showSuccessModal}
@@ -1371,24 +1467,6 @@ const styles = StyleSheet.create({
   },
   modalButtonPrimaryText: { fontSize: 15, fontWeight: "700", color: "#ffffff" },
 
-  loadingModalCard: {
-    backgroundColor: "#ffffff",
-    borderRadius: 16,
-    padding: 28,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-
-  loadingSubtext: {
-    fontSize: 13,
-    color: "#6b7280",
-    marginTop: 6,
-    textAlign: "center",
-  },
 
   successModalCard: {
     backgroundColor: "#ffffff",
@@ -1534,6 +1612,88 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   calendarConfirmText: { fontSize: 15, fontWeight: "700", color: "#ffffff" },
+
+  // Payment Modal Styles
+  paymentModalCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 16,
+    padding: 20,
+    width: "100%",
+    maxWidth: 360,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  paymentIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#eff6ff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  paymentDetailsCard: {
+    backgroundColor: "#f8fafc",
+    borderRadius: 10,
+    padding: 16,
+    marginBottom: 16,
+  },
+  paymentRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  paymentLabel: {
+    fontSize: 13,
+    color: "#6b7280",
+    marginRight: 8,
+    minWidth: 65,
+  },
+  paymentValue: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#111827",
+    flex: 1,
+  },
+  paymentAmount: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#ef4444",
+  },
+  paymentNoteCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f0f9ff",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  paymentNoteText: {
+    fontSize: 12,
+    color: "#0369a1",
+    marginLeft: 8,
+    flex: 1,
+    fontWeight: "500",
+  },
+  upgradeButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: "#fef3c7",
+    borderWidth: 1,
+    borderColor: "#fbbf24",
+    marginTop: 8,
+  },
+  upgradeButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#f59e0b",
+    marginLeft: 6,
+  },
 
   paymentPopupOverlay: {
     position: 'absolute',

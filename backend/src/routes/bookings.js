@@ -32,7 +32,8 @@ router.post('/create', authenticateToken, async (req, res) => {
       serviceName,
       serviceCategory,
       requestId,
-      notes
+      notes,
+      amountPaid
     } = req.body;
 
     // Validate required fields
@@ -50,7 +51,8 @@ router.post('/create', authenticateToken, async (req, res) => {
 
     // Determine user type and booking amount
     const userType = user.isVip ? 'vip' : 'normal';
-    const amountPaid = userType === 'vip' ? 0 : 9; // VIP users get free booking, normal users pay ₹9
+    // Use provided amountPaid if available, otherwise use default logic
+    const finalAmountPaid = amountPaid !== undefined ? amountPaid : (userType === 'vip' ? 0 : 9);
 
     // Create booking record
     const booking = await BookingData.create({
@@ -59,7 +61,7 @@ router.post('/create', authenticateToken, async (req, res) => {
       orderId: uuidv4(),
       orderData: orderData,
       paymentStatus: 'completed', // Static for now
-      amountPaid: amountPaid,
+      amountPaid: finalAmountPaid,
       requestId: requestId,
       serviceId: serviceId,
       serviceName: serviceName,
