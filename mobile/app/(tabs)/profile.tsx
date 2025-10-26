@@ -1,8 +1,8 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, TextInput } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, TextInput, Linking } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, FontSizes, Spacing } from "../../theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useNavigation, useRouter } from "expo-router";
+import { useNavigation, useRouter, Link } from "expo-router";
 import { useEffect } from "react";
 import { useFavorites } from "../../contexts/FavoritesContext";
 import { LinearGradient } from 'expo-linear-gradient';
@@ -15,6 +15,16 @@ export default function ProfileScreen() {
   const navigation = useNavigation();
   const { favorites } = useFavorites();
   const { authState } = useAuth();
+  
+  const handlePrivacyPolicyPress = () => {
+    console.log('Privacy Policy clicked');
+    router.navigate('/privacy-policy' as any);
+  };
+  
+  const handleTermsOfServicePress = () => {
+    console.log('Terms of Service clicked');
+    router.navigate('/terms-of-service' as any);
+  };
   
   // Determine user mode based on authentication
   const isVip = authState.user?.isVip || false;
@@ -197,13 +207,17 @@ export default function ProfileScreen() {
         </View>
         <Text style={styles.appVersion}>Discount Mithra v2.1.0</Text>
         <View style={styles.legalLinks}>
-          <TouchableOpacity>
-            <Text style={styles.legalLink}>Privacy Policy</Text>
-          </TouchableOpacity>
+          <Link href="/privacy-policy" asChild>
+            <TouchableOpacity style={styles.legalLinkContainer}>
+              <Text style={styles.legalLink}>Privacy Policy</Text>
+            </TouchableOpacity>
+          </Link>
           <Text style={styles.separator}>•</Text>
-          <TouchableOpacity>
-            <Text style={styles.legalLink}>Terms of Service</Text>
-          </TouchableOpacity>
+          <Link href="/terms-of-service" asChild>
+            <TouchableOpacity style={styles.legalLinkContainer}>
+              <Text style={styles.legalLink}>Terms of Service</Text>
+            </TouchableOpacity>
+          </Link>
         </View>
       </View>
 
@@ -419,10 +433,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
+  legalLinkContainer: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
   legalLink: {
     fontSize: 14,
     color: Colors.primary,
     fontWeight: "500",
+    textDecorationLine: "underline",
   },
   separator: {
     fontSize: 14,

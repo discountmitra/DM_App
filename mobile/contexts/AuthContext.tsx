@@ -22,6 +22,7 @@ type AuthContextType = {
   requestOtp: (phone: string) => Promise<void>;
   verifyOtp: (phone: string, code: string) => Promise<void>;
   logout: () => Promise<void>;
+  refreshUserData: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);

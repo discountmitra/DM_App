@@ -51,7 +51,10 @@ export default function SettingsScreen() {
           type: "navigation" as const,
           icon: "shield-outline",
           iconColor: "#ef4444",
-          onPress: () => {}
+          onPress: () => {
+            console.log('Privacy Policy clicked in settings');
+            router.push('/privacy-policy');
+          }
         },
         {
           id: "7",
@@ -60,7 +63,10 @@ export default function SettingsScreen() {
           type: "navigation" as const,
           icon: "document-text-outline",
           iconColor: "#6b7280",
-          onPress: () => {}
+          onPress: () => {
+            console.log('Terms of Service clicked in settings');
+            router.push('/terms-of-service');
+          }
         }
       ]
     },
@@ -74,7 +80,7 @@ export default function SettingsScreen() {
           type: "navigation" as const,
           icon: "person-outline",
           iconColor: "#3b82f6",
-          onPress: () => {}
+          onPress: () => router.push('/coming-soon')
         },
         {
           id: "10",
@@ -83,7 +89,7 @@ export default function SettingsScreen() {
           type: "navigation" as const,
           icon: "card-outline",
           iconColor: "#10b981",
-          onPress: () => {}
+          onPress: () => router.push('/coming-soon')
         }
       ]
     }

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, LayoutAnimation, Modal, ActivityIndicator, Animated, TouchableWithoutFeedback, TextInput } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, LayoutAnimation, Modal, ActivityIndicator, Animated, TextInput } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRouter } from "expo-router";
 import { useAuth } from "../contexts/AuthContext";
@@ -14,6 +14,7 @@ type SubscriptionPlan = {
   originalPrice: number;
   duration: string;
   features: string[];
+  popular?: boolean;
 };
 
 // Define subscription plans locally
@@ -38,6 +39,7 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     price: 699,
     originalPrice: 699,
     duration: "6 months",
+    popular: true,
     features: [
       "Unlimited service requests",
       "Priority customer support",
@@ -56,6 +58,7 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       "Unlimited service requests",
       "Priority customer support",
       "Exclusive VIP discounts",
+      "Family healthcare discount card",
       "Free premium services",
       "24/7 dedicated support"
     ]
@@ -65,7 +68,7 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
 export default function VipSubscriptionScreen() {
   const router = useRouter();
   const navigation = useNavigation();
-  const { authState, refreshUserData } = useAuth();
+  const { authState, refreshUserData } = useAuth() as any;
   
   // Determine user mode based on authentication
   const isVip = authState.user?.isVip || false;
@@ -82,26 +85,13 @@ export default function VipSubscriptionScreen() {
   const [cancellationReason, setCancellationReason] = useState('');
   const [showThankYouModal, setShowThankYouModal] = useState(false);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
-  const welcomeAnim = useRef(new Animated.Value(0)).current;
-
-  // Trigger welcome animation when modal shows
-  useEffect(() => {
-    if (showWelcomeModal) {
-      Animated.spring(welcomeAnim, {
-        toValue: 1,
-        friction: 8,
-        tension: 40,
-        useNativeDriver: true
-      }).start();
-    }
-  }, [showWelcomeModal]);
 
   // Fetch subscription status
   useEffect(() => {
     const fetchSubscriptionStatus = async () => {
-      if (isVip) {
+      if (isVip && authState.token) {
         try {
-          const status = await subscriptionService.getSubscriptionStatus(authState.token!);
+          const status = await subscriptionService.getSubscriptionStatus(authState.token);
           setSubscriptionData(status.currentSubscription);
         } catch (error) {
           console.error('Failed to fetch subscription status:', error);
@@ -109,7 +99,7 @@ export default function VipSubscriptionScreen() {
       }
     };
     fetchSubscriptionStatus();
-  }, [isVip]);
+  }, [isVip, authState.token]);
 
   // Calculate days remaining
   const calculateDaysRemaining = () => {
@@ -161,7 +151,7 @@ export default function VipSubscriptionScreen() {
   };
 
   const confirmSubscription = async () => {
-    if (!selectedPlan) return;
+    if (!selectedPlan || !authState.token) return;
     
     setShowConfirmModal(false);
     setIsLoading(true);
@@ -174,7 +164,7 @@ export default function VipSubscriptionScreen() {
       const finalPrice = Math.max(0, Math.round(selectedPlan.price * (1 - appliedPct)));
 
       // Real subscription process
-      const result = await subscriptionService.purchaseSubscription(authState.token!, {
+      const result = await subscriptionService.purchaseSubscription(authState.token, {
         planId: selectedPlan.id,
         planName: selectedPlan.name,
         amountPaid: finalPrice,
@@ -187,13 +177,21 @@ export default function VipSubscriptionScreen() {
       console.log('Subscription completed:', result);
       
       // Refresh user data to update VIP status
-      await refreshUserData();
+      try {
+        await refreshUserData();
+      } catch (error) {
+        console.error('Failed to refresh user data:', error);
+      }
       
       // Refresh subscription data
-      const status = await subscriptionService.getSubscriptionStatus(authState.token!);
-      setSubscriptionData(status.currentSubscription);
+      try {
+        const status = await subscriptionService.getSubscriptionStatus(authState.token);
+        setSubscriptionData(status.currentSubscription);
+      } catch (error) {
+        console.error('Failed to refresh subscription data:', error);
+      }
 
-      // Show welcome modal
+      // Show welcome modal first, then navigate when user closes it
       setShowWelcomeModal(true);
     } catch (error) {
       setIsLoading(false);
@@ -211,17 +209,26 @@ export default function VipSubscriptionScreen() {
       return;
     }
 
+    if (!authState.token) {
+      alert('Authentication required');
+      return;
+    }
+
     setShowCancelModal(false);
     setIsLoading(true);
 
     try {
       // Real cancellation process with user's reason
-      const result = await subscriptionService.cancelSubscription(authState.token!, cancellationReason.trim());
+      const result = await subscriptionService.cancelSubscription(authState.token, cancellationReason.trim());
       setIsLoading(false);
       console.log('Subscription cancelled:', result);
       
       // Refresh user data to update VIP status
-      await refreshUserData();
+      try {
+        await refreshUserData();
+      } catch (error) {
+        console.error('Failed to refresh user data:', error);
+      }
       
       // Clear subscription data
       setSubscriptionData(null);
@@ -588,53 +595,28 @@ export default function VipSubscriptionScreen() {
         </View>
       </Modal>
 
-      {/* Welcome Celebration Modal */}
+      {/* Welcome Modal */}
       <Modal visible={showWelcomeModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.welcomeModalCard}>
             <View style={styles.welcomeHeader}>
+              <Ionicons name="star" size={48} color="#f59e0b" />
               <Text style={styles.welcomeTitle}>Welcome to VIP!</Text>
-              <Text style={styles.welcomeSubtitle}>Enjoy premium benefits and exclusive savings.</Text>
-            </View>
-
-            {/* Simple balloon/confetti animation using circles */}
-            <View style={styles.celebrationStage}>
-              {[...Array(8)].map((_, i) => {
-                const delay = i * 80;
-                const translateY = welcomeAnim.interpolate({ inputRange: [0, 1], outputRange: [60 + i * 6, -20] });
-                const opacity = welcomeAnim.interpolate({ inputRange: [0, 0.2, 1], outputRange: [0, 0.9, 1] });
-                const scale = welcomeAnim.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] });
-                const left = (i % 2 === 0 ? 20 : 60) + (i * 8);
-                const bg = i % 3 === 0 ? '#f59e0b' : i % 3 === 1 ? '#10b981' : '#60a5fa';
-                return (
-                  <Animated.View
-                    key={i}
-                    style={{
-                      position: 'absolute',
-                      left,
-                      bottom: 0,
-                      width: 14,
-                      height: 18,
-                      borderRadius: 8,
-                      backgroundColor: bg,
-                      opacity,
-                      transform: [{ translateY }, { scale }]
-                    }}
-                  />
-                );
-              })}
+              <Text style={styles.welcomeSubtitle}>You now have access to premium benefits and exclusive savings.</Text>
             </View>
 
             <TouchableOpacity
               style={styles.welcomeButton}
               onPress={() => {
                 setShowWelcomeModal(false);
-                // Go to Home tab explicitly
-                try { router.replace('/(tabs)'); } catch { router.back(); }
+                // Navigate to home after closing modal
+                setTimeout(() => {
+                  router.replace('/(tabs)');
+                }, 300);
               }}
             >
-              <Ionicons name="rocket" size={18} color="#ffffff" />
-              <Text style={styles.welcomeButtonText}>Go to Home</Text>
+              <Ionicons name="thumbs-up" size={18} color="#ffffff" />
+              <Text style={styles.welcomeButtonText}>Explore benefits</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -784,12 +766,11 @@ const styles = StyleSheet.create({
   loadingText: { fontSize: 16, fontWeight: "600", color: "#111827", marginTop: 12, textAlign: "center" },
 
   // Welcome Modal Styles
-  welcomeModalCard: { backgroundColor: "#fff", borderRadius: 20, padding: 24, width: "100%", maxWidth: 360, shadowColor: "#000", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.25, shadowRadius: 16, elevation: 12, overflow: 'hidden' },
-  welcomeHeader: { alignItems: 'center', marginBottom: 16 },
-  welcomeTitle: { fontSize: 22, fontWeight: '800', color: '#111827', textAlign: 'center' },
-  welcomeSubtitle: { fontSize: 14, color: '#6b7280', textAlign: 'center', marginTop: 6 },
-  celebrationStage: { height: 120, marginVertical: 10 },
-  welcomeButton: { paddingVertical: 14, borderRadius: 12, backgroundColor: '#f59e0b', alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8, marginTop: 10 },
+  welcomeModalCard: { backgroundColor: "#fff", borderRadius: 20, padding: 24, width: "100%", maxWidth: 360, shadowColor: "#000", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.25, shadowRadius: 16, elevation: 12, alignItems: 'center' },
+  welcomeHeader: { alignItems: 'center', marginBottom: 20 },
+  welcomeTitle: { fontSize: 22, fontWeight: '800', color: '#111827', textAlign: 'center', marginTop: 10 },
+  welcomeSubtitle: { fontSize: 14, color: '#6b7280', textAlign: 'center', marginTop: 6, lineHeight: 20 },
+  welcomeButton: { paddingVertical: 14, paddingHorizontal: 20, borderRadius: 12, backgroundColor: '#f59e0b', alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8, marginTop: 10 },
   welcomeButtonText: { fontSize: 15, fontWeight: '700', color: '#ffffff' },
 
   // Coupon UI

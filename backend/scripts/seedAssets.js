@@ -1,3 +1,4 @@
+require('dotenv').config();
 const Asset = require('../src/models/Asset');
 const { sequelize } = require('../src/db');
 
@@ -84,6 +85,12 @@ const assetData = [
     image: 'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/assets/soon.svg',
     title: 'Coming Soon Illustration',
     description: 'Upcoming feature placeholder',
+  },
+  {
+    type: 'vip_info',
+    image: 'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/assets/vip-info.jpg',
+    title: 'VIP Info',
+    description: 'VIP information banner for VIP users',
   },
 ];
 

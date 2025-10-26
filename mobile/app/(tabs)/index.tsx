@@ -5,19 +5,19 @@ import DealCard from "../../components/home/DealCard";
 import CategoryPreview from "../../components/home/CategoryPreview";
 import { Spacing, Colors } from "../../theme";
 import { useNavigation, useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
-import { Animated, Modal } from 'react-native';
+import { useEffect, useState } from "react";
 import CustomTopBar from "@/components/home/CustomTopBar";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../contexts/AuthContext";
+import { BASE_URL } from "../../constants/api";
 // VIP banner now fetched from backend API
 
 export default function HomeScreen() {
   const navigation = useNavigation();
   const router = useRouter();
   const { authState } = useAuth();
-  const [showWelcome, setShowWelcome] = useState(false);
-  const confettiAnim = useRef(new Animated.Value(0)).current;
+  const [assets, setAssets] = useState([]);
+  const [loading, setLoading] = useState(true);
   
   // Determine user mode based on authentication
   const isVip = authState.user?.isVip || false;
@@ -27,11 +27,69 @@ export default function HomeScreen() {
     navigation.setOptions({ headerShown: false }); // Hide default header
   }, [navigation]);
 
+  // Fetch assets from backend
+  useEffect(() => {
+    const fetchAssets = async () => {
+      try {
+        console.log('Fetching assets from:', `${BASE_URL}/assets`);
+        const response = await fetch(`${BASE_URL}/assets`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        setAssets(data);
+        console.log('Assets fetched successfully:', data.length, 'items');
+        console.log('VIP info asset:', data.find(asset => asset.type === 'vip_info'));
+        console.log('VIP banner asset:', data.find(asset => asset.type === 'vip_banner'));
+      } catch (error) {
+        console.error('Error fetching assets:', error);
+        // Set fallback assets so the app doesn't break
+        setAssets([
+          {
+            id: 1,
+            type: 'vip_banner',
+            image: 'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/assets/vip-banner.png',
+            title: 'VIP Banner',
+            description: 'VIP membership promotional banner'
+          },
+          {
+            id: 2,
+            type: 'vip_info',
+            image: 'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/assets/vip-info.jpg',
+            title: 'VIP Info',
+            description: 'VIP information banner for VIP users'
+          }
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAssets();
+  }, []);
+
   // Welcome animation removed - no longer needed for deployment
   // VIP status is now managed by backend and AuthContext
 
   const handleUpgrade = () => {
     router.push('/vip-subscription');
+  };
+
+  // Get banner image based on user mode
+  const getBannerImage = () => {
+    if (isVip) {
+      // For VIP users, show VIP info image (non-clickable)
+      const vipInfoAsset = assets.find(asset => asset.type === 'vip_info');
+      console.log('VIP user - VIP info asset:', vipInfoAsset);
+      return vipInfoAsset?.image || 'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/assets/vip-info.jpg';
+    } else {
+      // For normal users, show VIP banner (clickable)
+      const vipBannerAsset = assets.find(asset => asset.type === 'vip_banner');
+      console.log('Normal user - VIP banner asset:', vipBannerAsset);
+      return vipBannerAsset?.image || 'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/assets/vip-banner.png';
+    }
   };
 
   return (
@@ -45,15 +103,30 @@ export default function HomeScreen() {
         {/* Greeting + Search */}
         <CustomTopBar />
 
-        {/* VIP Banner Image - Clickable */}
+        {/* VIP Banner Image - Conditional based on user mode */}
         <View style={styles.upgradeSection}>
-          <TouchableOpacity activeOpacity={0.9} onPress={() => router.push('/vip-subscription')}> 
+          {loading ? (
+            // Show loading placeholder
+            <View style={[styles.bannerImage, { backgroundColor: '#f0f0f0', justifyContent: 'center', alignItems: 'center' }]}>
+              <Text style={{ color: '#666' }}>Loading...</Text>
+            </View>
+          ) : isVip ? (
+            // VIP users see non-clickable VIP info image
             <Image
-              source={{ uri: "https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/assets/vip-banner.png" }}
+              source={{ uri: getBannerImage() }}
               style={styles.bannerImage}
               resizeMode="cover"
             />
-          </TouchableOpacity>
+          ) : (
+            // Normal users see clickable VIP banner
+            <TouchableOpacity activeOpacity={0.9} onPress={() => router.push('/vip-subscription')}> 
+              <Image
+                source={{ uri: getBannerImage() }}
+                style={styles.bannerImage}
+                resizeMode="cover"
+              />
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Hot Deal (static for now) */}
@@ -62,21 +135,6 @@ export default function HomeScreen() {
         {/* Categories Preview (only 4 shown here) */}
         <CategoryPreview />
       </LinearGradient>
-
-      <Modal visible={showWelcome} transparent animationType="fade" onRequestClose={() => setShowWelcome(false)}>
-        <View style={styles.welcomeOverlay}>
-          <View style={styles.welcomeCard}>
-            <Ionicons name="sparkles" size={48} color="#f59e0b" />
-            <Text style={[styles.welcomeTitle, { marginTop: 10 }]}>Welcome to VIP!</Text>
-            <Text style={styles.welcomeSubtitle}>You now have access to premium benefits and exclusive savings.</Text>
-
-            <TouchableOpacity style={[styles.welcomeButton, { marginTop: 14 }]} onPress={() => setShowWelcome(false)}>
-              <Ionicons name="thumbs-up" size={18} color="#ffffff" />
-              <Text style={styles.welcomeButtonText}>Explore benefits</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </ScrollView>
   );
 }
@@ -141,12 +199,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
-  welcomeOverlay: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center', padding: 16 },
-  welcomeCard: { backgroundColor: '#fff', borderRadius: 16, padding: 20, width: '100%', maxWidth: 360, alignItems: 'center' },
-  welcomeTitle: { fontSize: 20, fontWeight: '800', color: '#111827' },
-  welcomeSubtitle: { fontSize: 14, color: '#6b7280', marginTop: 6, textAlign: 'center' },
-  welcomeButton: { paddingVertical: 12, paddingHorizontal: 16, borderRadius: 10, backgroundColor: '#f59e0b', flexDirection: 'row', alignItems: 'center', gap: 8 },
-  welcomeButtonText: { color: '#fff', fontWeight: '700' },
   bannerImage: {
     width: '100%',
     height: 120,
