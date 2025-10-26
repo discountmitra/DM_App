@@ -3,6 +3,7 @@ const router = express.Router();
 const BookingData = require('../models/BookingData');
 const User = require('../models/User');
 const { v4: uuidv4 } = require('uuid');
+const smsService = require('../utils/smsService');
 
 // Middleware to authenticate JWT token
 const authenticateToken = async (req, res, next) => {
@@ -85,6 +86,28 @@ router.post('/create', authenticateToken, async (req, res) => {
       status: 'pending',
       notes: notes || null
     });
+
+    // Send SMS notification for all categories except food and shopping
+    console.log('Checking SMS trigger - serviceCategory:', serviceCategory);
+    const excludedCategories = ['food', 'shopping'];
+    const shouldSendSMS = !excludedCategories.includes(serviceCategory.toLowerCase());
+    
+    if (shouldSendSMS) {
+      console.log(`${serviceCategory} booking detected, sending SMS notification...`);
+      try {
+        const smsResult = await smsService.sendBookingNotification(booking, user);
+        if (smsResult.success) {
+          console.log(`✅ SMS notification sent for ${serviceCategory} booking:`, booking.orderId);
+        } else {
+          console.warn('❌ Failed to send SMS notification:', smsResult.error);
+        }
+      } catch (smsError) {
+        console.error('❌ SMS notification error:', smsError);
+        // Don't fail the booking if SMS fails
+      }
+    } else {
+      console.log(`${serviceCategory} booking - SMS notification skipped (excluded category)`);
+    }
 
     res.status(201).json({
       success: true,
