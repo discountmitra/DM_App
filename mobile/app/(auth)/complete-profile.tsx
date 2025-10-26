@@ -9,7 +9,7 @@ import { useAuth } from "../../contexts/AuthContext";
 export default function CompleteProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { register } = useAuth();
+  const { register, requestOtp } = useAuth();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -69,7 +69,15 @@ export default function CompleteProfileScreen() {
 
     try {
       const fullName = `${firstName} ${lastName}`.trim();
+      
+      // First, register the user
       await register(fullName, `+91${phoneNumber}`, email);
+      
+      // Then request OTP for verification
+      await requestOtp(`+91${phoneNumber}`);
+      
+      // Navigate to verify phone screen
+      router.push({ pathname: "/verify-phone", params: { phone: `+91${phoneNumber}` } });
     } catch (e: any) {
       // Handle specific error messages from backend
       const errorMessage = e?.message || 'Failed to register';

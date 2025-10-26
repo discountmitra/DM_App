@@ -1,11 +1,18 @@
-import { Tabs } from "expo-router";
+import { Tabs, Redirect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { TouchableOpacity } from "react-native";
 import { FontWeights } from "../../theme";
+import { useAuth } from "../../contexts/AuthContext";
 
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
+  const { authState } = useAuth();
+  
+  // Redirect to login if not authenticated
+  if (!authState.isAuthenticated) {
+    return <Redirect href="/login" />;
+  }
   
   return (
     <Tabs 

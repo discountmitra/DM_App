@@ -14,7 +14,7 @@ function signToken(user) {
   return jwt.sign(payload, process.env.JWT_SECRET || 'dev_secret', { expiresIn: '30d' });
 }
 
-// Registration - create user
+// Registration - create user (only new phone numbers and emails)
 router.post('/register', async (req, res) => {
   try {
     const { name, phone, email } = req.body || {};
@@ -22,80 +22,31 @@ router.post('/register', async (req, res) => {
 
     await sequelize.sync();
     
-    // Check if user already exists by phone first
-    let user = await User.findOne({ where: { phone } });
+    // Check if phone number already exists
+    const existingPhoneUser = await User.findOne({ where: { phone } });
+    if (existingPhoneUser) {
+      return res.status(400).json({ error: 'User number already exists' });
+    }
     
-    if (user) {
-      // User exists with this phone, update information if needed
-      let updated = false;
-      
-      if (email && !user.email) { 
-        user.email = email; 
-        updated = true;
-      }
-      
-      if (name && user.name !== name) {
-        user.name = name;
-        updated = true;
-      }
-      
-      if (updated) {
-        await user.save();
-      }
-    } else {
-      // Check if email already exists (if provided)
-      if (email) {
-        const existingEmailUser = await User.findOne({ where: { email } });
-        if (existingEmailUser) {
-          return res.status(400).json({ error: 'Email already exists' });
-        }
-      }
-      
-      // Create new user with alphanumeric ID
-      const userId = await generateUniqueUserId(User);
-      user = await User.create({ 
-        newId: userId, 
-        name, 
-        phone, 
-        email 
-      });
-      
-      // Refresh user to ensure we have the latest data
-      user = await User.findOne({
-        where: { id: user.id },
-        attributes: ['id', 'newId', 'name', 'phone', 'email', 'isVip', 'vipExpiresAt', 'currentSubscriptionId']
-      });
-      
-      // If newId is still null, try to get it directly from the database
-      if (!user.newId) {
-        const rawUser = await sequelize.query(
-          'SELECT id, new_id, name, phone, email, "isVip", "vipExpiresAt", "currentSubscriptionId" FROM users WHERE id = ?',
-          { 
-            replacements: [user.id], 
-            type: sequelize.QueryTypes.SELECT 
-          }
-        );
-        if (rawUser.length > 0) {
-          user.newId = rawUser[0].new_id;
-        }
+    // Check if email already exists (if provided)
+    if (email) {
+      const existingEmailUser = await User.findOne({ where: { email } });
+      if (existingEmailUser) {
+        return res.status(400).json({ error: 'Email already exists' });
       }
     }
     
-    const token = signToken(user);
+    // Create new user with alphanumeric ID
+    const userId = await generateUniqueUserId(User);
+    const user = await User.create({ 
+      newId: userId, 
+      name, 
+      phone, 
+      email 
+    });
     
-    // Return user with both id and newId for frontend compatibility
-    const userResponse = {
-      id: user.newId || user.id, // Prioritize newId for display
-      newId: user.newId || null, // Separate newId field
-      name: user.name,
-      phone: user.phone,
-      email: user.email,
-      isVip: user.isVip,
-      vipExpiresAt: user.vipExpiresAt,
-      currentSubscriptionId: user.currentSubscriptionId
-    };
-    
-    res.json({ token, user: userResponse });
+    // Don't return token - user needs to verify OTP first
+    res.json({ success: true, message: 'User registered successfully. Please verify OTP.' });
   } catch (e) {
     console.error('register error', e);
     
@@ -105,7 +56,7 @@ router.post('/register', async (req, res) => {
         return res.status(400).json({ error: 'Email already exists' });
       }
       if (e.errors.some(err => err.path === 'phone')) {
-        return res.status(400).json({ error: 'Phone number already exists' });
+        return res.status(400).json({ error: 'User number already exists' });
       }
     }
     
@@ -113,13 +64,13 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// OTP: request (send)
+// OTP: request (send) - works for both existing users (login) and new users (registration)
 router.post('/otp/request', async (req, res) => {
   try {
     const { phone } = req.body || {};
     if (!phone) return res.status(400).json({ error: 'phone required' });
-    const user = await User.findOne({ where: { phone } });
-    if (!user) return res.status(404).json({ error: 'User not found' });
+    
+    // Allow OTP to be sent to any phone number (for both login and registration)
 
     // Generate 4-digit OTP and persist
     const code = String(Math.floor(1000 + Math.random() * 9000));
@@ -143,7 +94,7 @@ router.post('/otp/request', async (req, res) => {
   }
 });
 
-// OTP: verify (login)
+// OTP: verify (works for both login and registration)
 router.post('/otp/verify', async (req, res) => {
   try {
     const { phone, code } = req.body || {};

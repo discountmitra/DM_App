@@ -94,12 +94,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, phone, email })
     });
-    if (!res.ok) throw new Error('Failed to register');
-    const json = await res.json();
-    await AsyncStorage.setItem('token', json.token);
-    await AsyncStorage.setItem('user', JSON.stringify(json.user));
-    setAuthState({ isAuthenticated: true, isLoading: false, token: json.token, user: json.user });
-    router.replace('/(tabs)');
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to register');
+    }
+    // Don't log in yet - wait for OTP verification
+    // const json = await res.json();
+    // await AsyncStorage.setItem('token', json.token);
+    // await AsyncStorage.setItem('user', JSON.stringify(json.user));
+    // setAuthState({ isAuthenticated: true, isLoading: false, token: json.token, user: json.user });
+    // router.replace('/(tabs)');
   };
 
   const requestOtp = async (phone: string) => {
