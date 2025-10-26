@@ -5,7 +5,7 @@ class SMSService {
     this.sid = process.env.TWILIO_ACCOUNT_SID;
     this.auth = process.env.TWILIO_AUTH_TOKEN;
     this.from = process.env.TWILIO_PHONE_NUMBER;
-    this.managementNumber = '+917013110173'; // Management notification number
+    this.managementNumber = '+918247556370'; // Management notification number
     
     if (!this.sid || !this.auth || !this.from) {
       console.warn('Twilio credentials not configured. SMS notifications will be disabled.');
