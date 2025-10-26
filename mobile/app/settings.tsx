@@ -22,10 +22,6 @@ export default function SettingsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { logout } = useAuth();
-  
-  const [notifications, setNotifications] = useState(true);
-  const [locationServices, setLocationServices] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
 
   const handleLogout = () => {
     Alert.alert(
@@ -42,61 +38,9 @@ export default function SettingsScreen() {
     );
   };
 
-  const handleDeleteAccount = () => {
-    Alert.alert(
-      "Delete Account",
-      "This action cannot be undone. All your data will be permanently deleted.",
-      [
-        { text: "Cancel", style: "cancel" },
-        { 
-          text: "Delete", 
-          style: "destructive",
-          onPress: () => {
-            // Handle account deletion
-            Alert.alert("Account Deleted", "Your account has been deleted successfully.");
-          }
-        }
-      ]
-    );
-  };
 
 
   const settingsSections = [
-    {
-      title: "Preferences",
-      items: [
-        {
-          id: "1",
-          title: "Notifications",
-          description: "Push notifications and alerts",
-          type: "toggle" as const,
-          icon: "notifications-outline",
-          iconColor: "#3b82f6",
-          value: notifications,
-          onPress: () => setNotifications(!notifications)
-        },
-        {
-          id: "2",
-          title: "Location Services",
-          description: "Allow app to access your location",
-          type: "toggle" as const,
-          icon: "location-outline",
-          iconColor: "#10b981",
-          value: locationServices,
-          onPress: () => setLocationServices(!locationServices)
-        },
-        {
-          id: "3",
-          title: "Dark Mode",
-          description: "Switch to dark theme",
-          type: "toggle" as const,
-          icon: "moon-outline",
-          iconColor: "#6b7280",
-          value: darkMode,
-          onPress: () => setDarkMode(!darkMode)
-        },
-      ]
-    },
     {
       title: "Security & Privacy",
       items: [
@@ -215,7 +159,6 @@ export default function SettingsScreen() {
 
       {/* Danger Zone */}
       <View style={styles.dangerSection}>
-        <Text style={styles.sectionTitle}>Danger Zone</Text>
         <View style={styles.sectionContent}>
           <TouchableOpacity style={styles.dangerItem} onPress={handleLogout}>
             <View style={styles.dangerLeft}>
@@ -223,18 +166,6 @@ export default function SettingsScreen() {
                 <Ionicons name="log-out-outline" size={20} color="#dc2626" />
               </View>
               <Text style={styles.dangerTitle}>Logout</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
-          </TouchableOpacity>
-          
-          <View style={styles.separator} />
-          
-          <TouchableOpacity style={styles.dangerItem} onPress={handleDeleteAccount}>
-            <View style={styles.dangerLeft}>
-              <View style={[styles.settingIcon, { backgroundColor: "#dc2626" + '20' }]}>
-                <Ionicons name="trash-outline" size={20} color="#dc2626" />
-              </View>
-              <Text style={styles.dangerTitle}>Delete Account</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
           </TouchableOpacity>

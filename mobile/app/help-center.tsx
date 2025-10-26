@@ -30,27 +30,20 @@ const helpCategories: HelpCategory[] = [
   },
   {
     id: "2",
-    title: "Orders & Delivery",
-    icon: "bag-outline",
-    color: "#10b981",
-    description: "Track orders, delivery issues, and order management"
-  },
-  {
-    id: "3",
     title: "Payments & Billing",
     icon: "card-outline",
     color: "#f59e0b",
     description: "Payment methods, billing, and refunds"
   },
   {
-    id: "4",
+    id: "3",
     title: "App Features",
     icon: "phone-portrait-outline",
     color: "#8b5cf6",
     description: "How to use app features and functionality"
   },
   {
-    id: "5",
+    id: "4",
     title: "Technical Support",
     icon: "settings-outline",
     color: "#6b7280",
@@ -64,33 +57,27 @@ const faqItems: FAQItem[] = [
     question: "How do I place an order?",
     answer: "To place an order, browse restaurants, select items, add them to cart, and proceed to checkout. You can pay using various payment methods including cards, digital wallets, or cash on delivery.",
     category: "Orders & Delivery"
-  },
+  },  
   {
     id: "2",
-    question: "How can I track my order?",
-    answer: "Once your order is confirmed, you'll receive real-time updates. You can track your order status in the 'Orders' section of your profile or through push notifications.",
-    category: "Orders & Delivery"
-  },
-  {
-    id: "3",
     question: "What payment methods do you accept?",
     answer: "We accept credit/debit cards, digital wallets (Apple Pay, Google Pay), UPI, and cash on delivery for select restaurants.",
     category: "Payments & Billing"
   },
   {
-    id: "4",
+    id: "3",
     question: "How do I update my profile information?",
     answer: "Go to Profile > Edit Profile to update your name, email, phone number, and delivery address.",
     category: "Account & Profile"
   },
   {
-    id: "5",
+    id: "4",
     question: "How do I add items to favorites?",
     answer: "Tap the heart icon on any restaurant card or item to add it to your favorites. You can view all favorites in the Profile tab.",
     category: "App Features"
   },
   {
-    id: "6",
+    id: "5",
     question: "What if I have a complaint about my order?",
     answer: "Contact our customer support through the Help Center or call our support number. We'll investigate and resolve any issues with your order.",
     category: "Orders & Delivery"
