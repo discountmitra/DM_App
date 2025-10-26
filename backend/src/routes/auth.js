@@ -83,9 +83,10 @@ router.post('/register', async (req, res) => {
     
     const token = signToken(user);
     
-    // Return user with newId as id for frontend compatibility
+    // Return user with both id and newId for frontend compatibility
     const userResponse = {
-      id: user.newId || user.id,
+      id: user.newId || user.id, // Prioritize newId for display
+      newId: user.newId || null, // Separate newId field
       name: user.name,
       phone: user.phone,
       email: user.email,
@@ -159,7 +160,20 @@ router.post('/otp/verify', async (req, res) => {
     record.consumedAt = new Date();
     await record.save();
     const token = signToken(user);
-    res.json({ token, user });
+    
+    // Return user with both id and newId for frontend compatibility
+    const userResponse = {
+      id: user.newId || user.id, // Prioritize newId for display
+      newId: user.newId || null, // Separate newId field
+      name: user.name,
+      phone: user.phone,
+      email: user.email,
+      isVip: user.isVip,
+      vipExpiresAt: user.vipExpiresAt,
+      currentSubscriptionId: user.currentSubscriptionId
+    };
+    
+    res.json({ token, user: userResponse });
   } catch (e) {
     console.error('otp verify error', e);
     res.status(500).json({ error: 'Failed to verify OTP' });
@@ -182,9 +196,10 @@ router.get('/me', async (req, res) => {
     
     if (!user) return res.status(404).json({ error: 'User not found' });
     
-    // Return user with newId as id for frontend compatibility
+    // Return user with both id and newId for frontend compatibility
     const userResponse = {
-      id: user.newId || user.id, // Prioritize newId
+      id: user.newId || user.id, // Prioritize newId for display
+      newId: user.newId || null, // Separate newId field
       name: user.name,
       phone: user.phone,
       email: user.email,

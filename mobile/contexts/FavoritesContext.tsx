@@ -47,9 +47,13 @@ export const FavoritesProvider: React.FC<{ children: ReactNode }> = ({ children 
       const response = await favoritesService.getMyFavorites(authState.token);
       setFavorites(response.favorites || []);
     } catch (error) {
-      console.error('Error loading favorites:', error);
-      // Don't set error for 404 or empty favorites - just show empty list
-      if (error instanceof Error && !error.message.includes('404')) {
+      // Don't log or set error for authentication issues, 404, or empty favorites - just show empty list
+      if (error instanceof Error && 
+          !error.message.includes('404') && 
+          !error.message.includes('Invalid') && 
+          !error.message.includes('expired') &&
+          !error.message.includes('token')) {
+        console.error('Error loading favorites:', error);
         setError(error.message);
       }
       setFavorites([]);

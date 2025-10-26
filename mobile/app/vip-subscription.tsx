@@ -84,6 +84,18 @@ export default function VipSubscriptionScreen() {
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const welcomeAnim = useRef(new Animated.Value(0)).current;
 
+  // Trigger welcome animation when modal shows
+  useEffect(() => {
+    if (showWelcomeModal) {
+      Animated.spring(welcomeAnim, {
+        toValue: 1,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true
+      }).start();
+    }
+  }, [showWelcomeModal]);
+
   // Fetch subscription status
   useEffect(() => {
     const fetchSubscriptionStatus = async () => {
@@ -181,8 +193,8 @@ export default function VipSubscriptionScreen() {
       const status = await subscriptionService.getSubscriptionStatus(authState.token!);
       setSubscriptionData(status.currentSubscription);
 
-      // Navigate to Home tab after successful purchase
-      try { router.replace('/(tabs)'); } catch { router.back(); }
+      // Show welcome modal
+      setShowWelcomeModal(true);
     } catch (error) {
       setIsLoading(false);
       console.error('Subscription failed:', error);

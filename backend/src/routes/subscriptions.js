@@ -27,9 +27,8 @@ const authenticateToken = async (req, res, next) => {
       return res.status(404).json({ error: 'User not found' });
     }
     
-    // Use the newId if available, otherwise fallback to id
-    const userId = user.newId || user.id;
-    req.user = { id: userId, phone: user.phone, isVip: user.isVip };
+    // Store both integer id (for DB) and newId (for display)
+    req.user = { id: user.id, newId: user.newId, phone: user.phone, isVip: user.isVip };
     next();
   } catch (err) {
     return res.status(403).json({ error: 'Invalid token' });

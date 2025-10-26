@@ -1,6 +1,9 @@
 export interface HealthcarePricing {
   description: string;
   location: string;
+  actualPrice: number;
+  normalPrice: number;
+  vipPrice: number;
   normal_user: {
     OP: string;
   };
@@ -19,6 +22,9 @@ export const healthcarePricingData: HealthcarePricing[] = [
   {
     "description": "Amrutha Children's Hospital",
     "location": "Near Vani Nursing Home, Sardar Nagar, Sircilla",
+    "actualPrice": 400,
+    "normalPrice": 300,
+    "vipPrice": 300,
     "normal_user": {
       "OP": "Book OP for ₹400 (No discount in OP)"
     },
@@ -31,6 +37,9 @@ export const healthcarePricingData: HealthcarePricing[] = [
   {
     "description": "Lulu Children's Hospital",
     "location": "Ambedkar Chowrasta, Beside Amma Hospital, Rajanna Sircilla",
+    "actualPrice": 300,
+    "normalPrice": 200,
+    "vipPrice": 200,
     "normal_user": {
       "OP": "Book OP for ₹300 (No discount in OP)"
     },
@@ -43,6 +52,9 @@ export const healthcarePricingData: HealthcarePricing[] = [
   {
     "description": "Life Hospital",
     "location": "In front of Municipal Office, Gandhinagar, Sircilla",
+    "actualPrice": 300,
+    "normalPrice": 200,
+    "vipPrice": 200,
     "normal_user": {
       "OP": "Book OP for ₹300 (No discount in OP)"
     },
@@ -55,6 +67,9 @@ export const healthcarePricingData: HealthcarePricing[] = [
   {
     "description": "Vasavi General Hospital",
     "location": "Beside Amma Hospital, Sircilla",
+    "actualPrice": 300,
+    "normalPrice": 200,
+    "vipPrice": 200,
     "normal_user": {
       "OP": "Book OP for ₹300 (No discount in OP)"
     },
@@ -67,6 +82,9 @@ export const healthcarePricingData: HealthcarePricing[] = [
   {
     "description": "Siddi Vinayaka E.N.T. Hospital",
     "location": "Beside Vinayaka Ortho Care, Sircilla",
+    "actualPrice": 300,
+    "normalPrice": 200,
+    "vipPrice": 200,
     "normal_user": {
       "OP": "Book OP for ₹300 (No discount in OP)"
     },
@@ -79,6 +97,9 @@ export const healthcarePricingData: HealthcarePricing[] = [
   {
     "description": "Shiva Sai Opticals",
     "location": "Beside Quality Fast Food, Sircilla",
+    "actualPrice": 100,
+    "normalPrice": 50,
+    "vipPrice": 0,
     "normal_user": {
       "OP": "Book OP for ₹99 (No discount in OP)"
     },
@@ -90,6 +111,9 @@ export const healthcarePricingData: HealthcarePricing[] = [
   {
     "description": "Aditya Neuro & Ortho",
     "location": "Siddulwada, Sircilla",
+    "actualPrice": 400,
+    "normalPrice": 400,
+    "vipPrice": 400,
     "normal_user": {
       "OP": "Book OP for ₹400 (No discount in OP)"
     },
@@ -102,6 +126,9 @@ export const healthcarePricingData: HealthcarePricing[] = [
   {
     "description": "Chandana Chest Hospital",
     "location": "Beside Vani Nursing Home, Sircilla",
+    "actualPrice": 300,
+    "normalPrice": 200,
+    "vipPrice": 200,
     "normal_user": {
       "OP": "Book OP for ₹300 (No discount in OP)"
     },
@@ -114,6 +141,9 @@ export const healthcarePricingData: HealthcarePricing[] = [
   {
     "description": "Vihana Multispeciality Dental Care",
     "location": "Karimnagar–Sircilla Road, Near Old Bus Stand, Sircilla",
+    "actualPrice": 300,
+    "normalPrice": 100,
+    "vipPrice": 0,
     "normal_user": {
       "OP": "Book OP @ ₹99 (No discount in OP)"
     },
@@ -158,6 +188,7 @@ export const calculateHealthcarePricing = (hospitalName: string, hospitalLocatio
   if (!hospital) {
     // Default pricing if hospital not found
     return {
+      actualPrice: 0,
       normalPrice: 0,
       vipPrice: 0,
       displayText: "Free",
@@ -166,83 +197,23 @@ export const calculateHealthcarePricing = (hospitalName: string, hospitalLocatio
     };
   }
 
-  const normalOpText = hospital.normal_user.OP;
-  const vipOpText = hospital.vip_user.OP;
-
-  // Extract prices from text
-  const extractPrice = (text: string): number => {
-    const match = text.match(/₹(\d+)/);
-    return match ? parseInt(match[1]) : 0;
-  };
-
-  const normalPrice = extractPrice(normalOpText);
-  
   if (isVip) {
-    // For VIP users, extract the final price after discount
-    if (vipOpText.includes("Pay only ₹")) {
-      const vipPrice = extractPrice(vipOpText);
-      const originalPrice = normalPrice;
-      const discount = originalPrice - vipPrice;
-      return {
-        normalPrice,
-        vipPrice,
-        displayText: `₹${vipPrice}`,
-        originalPrice,
-        discount
-      };
-    } else if (vipOpText.includes("Pay ₹")) {
-      const vipPrice = extractPrice(vipOpText);
-      return {
-        normalPrice,
-        vipPrice,
-        displayText: `₹${vipPrice}`,
-        originalPrice: normalPrice,
-        discount: normalPrice - vipPrice
-      };
-    } else {
-      // No OP applicable
-      return {
-        normalPrice: 0,
-        vipPrice: 0,
-        displayText: "Free",
-        originalPrice: 0,
-        discount: 0
-      };
-    }
+    return {
+      actualPrice: hospital.actualPrice,
+      normalPrice: hospital.normalPrice,
+      vipPrice: hospital.vipPrice,
+      displayText: hospital.vipPrice > 0 ? `₹${hospital.vipPrice}` : "Free",
+      originalPrice: hospital.actualPrice,
+      discount: hospital.actualPrice - hospital.vipPrice
+    };
   } else {
-    // For normal users - apply ₹100 discount only to hospitals, keep other services at original prices
-    if (normalPrice === 0) {
-      return {
-        normalPrice: 0,
-        vipPrice: 0,
-        displayText: "Free",
-        originalPrice: 0,
-        discount: 0
-      };
-    } else {
-      // Check if it's a hospital (contains "Hospital" in the name)
-      const isHospital = hospitalName.toLowerCase().includes('hospital');
-      
-      if (isHospital) {
-        // Apply ₹100 discount only to hospitals
-        const discountedPrice = Math.max(0, normalPrice - 100);
-        return {
-          normalPrice: discountedPrice,
-          vipPrice: 0,
-          displayText: `₹${discountedPrice}`,
-          originalPrice: normalPrice,
-          discount: 100
-        };
-      } else {
-        // Keep original prices for other services
-        return {
-          normalPrice,
-          vipPrice: 0,
-          displayText: `₹${normalPrice}`,
-          originalPrice: normalPrice,
-          discount: 0
-        };
-      }
-    }
+    return {
+      actualPrice: hospital.actualPrice,
+      normalPrice: hospital.normalPrice,
+      vipPrice: hospital.vipPrice,
+      displayText: hospital.normalPrice > 0 ? `₹${hospital.normalPrice}` : "Free",
+      originalPrice: hospital.actualPrice,
+      discount: hospital.actualPrice - hospital.normalPrice
+    };
   }
 };

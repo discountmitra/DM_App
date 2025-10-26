@@ -121,17 +121,19 @@ export default function FavoritesScreen() {
           {item.description || item.subcategory || "No description available"}
         </Text>
         
-        <View style={styles.itemMeta}>
-          <View style={styles.ratingContainer}>
-            <Ionicons name="star" size={12} color="#f59e0b" />
-            <Text style={styles.ratingText}>{item.rating?.toFixed(1) || "4.8"}</Text>
-            <Text style={styles.reviewsText}>({item.reviews || "234"})</Text>
+          <View style={styles.itemMeta}>
+            <View style={styles.ratingContainer}>
+              <Ionicons name="star" size={12} color="#f59e0b" />
+              <Text style={styles.ratingText}>
+                {typeof item.rating === 'number' ? item.rating.toFixed(1) : (typeof item.rating === 'string' ? item.rating : "4.8")}
+              </Text>
+              <Text style={styles.reviewsText}>({item.reviews || "234"})</Text>
+            </View>
+            
+            {item.price && (
+              <Text style={styles.priceText}>{item.price}</Text>
+            )}
           </View>
-          
-          {item.price && (
-            <Text style={styles.priceText}>{item.price}</Text>
-          )}
-        </View>
         
         {item.subcategory && (
           <View style={styles.subcategoryContainer}>

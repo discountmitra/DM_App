@@ -125,7 +125,7 @@ export default function HospitalDetailScreen() {
 
   // Calculate healthcare pricing based on the specific pricing data
   const healthcarePricing = useMemo(() => {
-    if (!hospital) return { normalPrice: 0, vipPrice: 0, displayText: "Free", originalPrice: 0, discount: 0 };
+    if (!hospital) return { actualPrice: 0, normalPrice: 0, vipPrice: 0, displayText: "Free", originalPrice: 0, discount: 0 };
     return calculateHealthcarePricing(hospital.name, hospital.location || "", isVip);
   }, [hospital, isVip]);
 
@@ -192,18 +192,22 @@ export default function HospitalDetailScreen() {
 
     console.log('User type:', isVip ? 'VIP' : 'Normal');
     console.log('Healthcare pricing:', healthcarePricing);
+    console.log('Is pharmacy:', hospital.category === 'Pharmacy');
 
-    // Show payment modal for normal users, confirmation modal for VIP users
-    if (isVip) {
-      console.log('Showing confirmation modal for VIP user');
+    // For pharmacies, skip payment modal and go straight to confirmation
+    if (hospital.category === 'Pharmacy') {
+      console.log('Pharmacy - showing confirmation modal directly');
       setShowConfirmModal(true);
-    } else {
-      console.log('Showing payment modal for normal user');
+    } 
+    // Show payment modal for all non-pharmacy services (both normal and VIP)
+    else {
+      console.log('Showing payment modal');
       setShowPaymentModal(true);
     }
   };
 
   const handlePaymentContinue = () => {
+    console.log('Payment continue clicked');
     setShowPaymentModal(false);
     setShowConfirmModal(true);
   };
@@ -460,6 +464,19 @@ export default function HospitalDetailScreen() {
           </Text>
         </View>
 
+        {hospital.category !== 'Pharmacy' && (
+          <View style={styles.section}>
+            <Text style={styles.noteTitle}>Important Note</Text>
+            <Text style={styles.noteText}>
+              These discounts are exclusively available to those who pre-book their appointment before visiting the hospital.
+            </Text>
+            <View style={styles.noteDivider} />
+            <Text style={styles.noteTextTelugu}>
+              ఆసుపత్రికి వెళ్లే ముందు బుక్ చేసుకునే వారికి మాత్రమే ఈ డిస్కౌంట్లు అందుబాటులో ఉంటాయి.
+            </Text>
+          </View>
+        )}
+
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Offers & Benefits</Text>
           <OfferCards 
@@ -578,7 +595,13 @@ export default function HospitalDetailScreen() {
             ) : (
               <View style={styles.bookBtnContentRow}>
                 <Text style={styles.bookBtnText}>
-                  {isVip ? `Book OP (${healthcarePricing.displayText})` : `Book OP (${healthcarePricing.displayText})`}
+                  Book OP
+                  {healthcarePricing.actualPrice > 0 && (
+                    <>
+                      {' '}<Text style={{ textDecorationLine: 'line-through', color: '#fff', opacity: 0.7 }}>{`₹${healthcarePricing.actualPrice}`}</Text>
+                    </>
+                  )}
+                  {' '}({healthcarePricing.displayText})
                 </Text>
               </View>
             )}
@@ -711,7 +734,12 @@ export default function HospitalDetailScreen() {
       </Modal>
 
       {/* Payment Popup for Normal Users */}
-      {showPaymentModal && (
+      <Modal
+        visible={showPaymentModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowPaymentModal(false)}
+      >
         <View style={styles.paymentPopupOverlay}>
           <TouchableWithoutFeedback onPress={() => setShowPaymentModal(false)}>
             <View style={StyleSheet.absoluteFill} />
@@ -733,14 +761,41 @@ export default function HospitalDetailScreen() {
             </View>
 
             <View style={styles.paymentPricingInfo}>
-              <View style={styles.paymentPriceRow}>
-                <Text style={styles.paymentNormalPrice}>{healthcarePricing.displayText}</Text>
-                <View style={styles.paymentVipPriceLocked}>
-                  <Ionicons name="lock-closed" size={12} color="#9ca3af" />
-                  <Text style={styles.paymentVipPriceText}>VIP: {healthcarePricing.vipPrice === 0 ? 'Free' : healthcarePricing.displayText}</Text>
-                  <Text style={styles.paymentSavingsText}>Save ₹{healthcarePricing.originalPrice - healthcarePricing.vipPrice}</Text>
+              {isVip ? (
+                // VIP pricing display
+                <View style={styles.paymentPriceRow}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    {healthcarePricing.actualPrice > 0 && (
+                      <Text style={{ textDecorationLine: 'line-through', color: '#9ca3af', fontSize: 16 }}>
+                        ₹{healthcarePricing.actualPrice}
+                      </Text>
+                    )}
+                    <Text style={styles.paymentNormalPrice}>{healthcarePricing.displayText}</Text>
+                  </View>
+                  <View style={styles.paymentVipActive}>
+                    <Ionicons name="star" size={12} color="#f59e0b" />
+                    <Text style={styles.paymentVipActiveText}>VIP Active</Text>
+                    <Text style={styles.paymentSavingsText}>Save ₹{healthcarePricing.actualPrice - healthcarePricing.vipPrice}</Text>
+                  </View>
                 </View>
-              </View>
+              ) : (
+                // Normal user pricing display
+                <View style={styles.paymentPriceRow}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    {healthcarePricing.actualPrice > 0 && (
+                      <Text style={{ textDecorationLine: 'line-through', color: '#9ca3af', fontSize: 16 }}>
+                        ₹{healthcarePricing.actualPrice}
+                      </Text>
+                    )}
+                    <Text style={styles.paymentNormalPrice}>{healthcarePricing.displayText}</Text>
+                  </View>
+                  <View style={styles.paymentVipPriceLocked}>
+                    <Ionicons name="lock-closed" size={12} color="#9ca3af" />
+                    <Text style={styles.paymentVipPriceText}>VIP: {healthcarePricing.vipPrice === 0 ? 'Free' : `₹${healthcarePricing.vipPrice}`}</Text>
+                    <Text style={styles.paymentSavingsText}>Save ₹{healthcarePricing.actualPrice - healthcarePricing.vipPrice}</Text>
+                  </View>
+                </View>
+              )}
             </View>
 
             <View style={styles.paymentPopupButtons}>
@@ -748,25 +803,29 @@ export default function HospitalDetailScreen() {
                 style={styles.paymentContinueButton} 
                 onPress={handlePaymentContinue}
               >
-                <Text style={styles.paymentContinueText}>Continue with {healthcarePricing.displayText}</Text>
+                <Text style={styles.paymentContinueText}>
+                  {isVip ? `Continue with VIP Price (${healthcarePricing.displayText})` : `Continue with ${healthcarePricing.displayText}`}
+                </Text>
               </TouchableOpacity>
               
-              <TouchableOpacity 
-                style={styles.paymentUpgradeButton} 
-                onPress={handleUpgradeToVip}
-              >
-                <LinearGradient
-                  colors={['#f59e0b', '#d97706']}
-                  style={styles.paymentUpgradeGradient}
+              {!isVip && (
+                <TouchableOpacity 
+                  style={styles.paymentUpgradeButton} 
+                  onPress={handleUpgradeToVip}
                 >
-                  <Ionicons name="star" size={16} color="#fff" />
-                  <Text style={styles.paymentUpgradeText}>Upgrade to VIP</Text>
-                </LinearGradient>
-              </TouchableOpacity>
+                  <LinearGradient
+                    colors={['#f59e0b', '#d97706']}
+                    style={styles.paymentUpgradeGradient}
+                  >
+                    <Ionicons name="star" size={16} color="#fff" />
+                    <Text style={styles.paymentUpgradeText}>Upgrade to VIP</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         </View>
-      )}
+      </Modal>
 
       <Modal
         visible={showSuccessModal}
@@ -1311,6 +1370,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   noteText: { marginTop: 10, fontSize: 12, color: "#6b7280" },
+  noteTitle: { fontSize: 16, fontWeight: "600", color: "#111827", marginBottom: 8 },
+  noteTextTelugu: { fontSize: 13, color: "#6b7280", lineHeight: 20 },
+  noteDivider: { height: 1, backgroundColor: "#e5e7eb", marginVertical: 12 },
   faqList: { gap: 12 },
   faqItem: { borderBottomWidth: 1, borderBottomColor: "#f3f4f6", paddingBottom: 12, marginBottom: 12 },
   faqHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 4 },
@@ -1696,15 +1758,10 @@ const styles = StyleSheet.create({
   },
 
   paymentPopupOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 1000,
   },
   paymentPopupContainer: {
     backgroundColor: '#fff',
@@ -1774,10 +1831,26 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     gap: 6,
   },
+  paymentVipActive: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fef3c7',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: '#fde68a',
+  },
   paymentVipPriceText: {
     fontSize: 12,
     fontWeight: '600',
     color: '#9ca3af',
+  },
+  paymentVipActiveText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#92400e',
   },
   paymentSavingsText: {
     fontSize: 10,

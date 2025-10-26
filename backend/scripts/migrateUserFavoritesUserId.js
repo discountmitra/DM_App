@@ -1,4 +1,4 @@
-require('dotenv').config({ path: '../.env' });
+require('dotenv').config();
 const { sequelize } = require('../src/db');
 const UserFavorites = require('../src/models/UserFavorites');
 

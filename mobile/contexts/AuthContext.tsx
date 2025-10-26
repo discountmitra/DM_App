@@ -12,6 +12,7 @@ type AuthState = {
     name?: string;
     email?: string;
     isVip?: boolean;
+    newId?: string;
   } | null;
 };
 
@@ -43,20 +44,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const token = await AsyncStorage.getItem('token');
       const userData = await AsyncStorage.getItem('user');
       if (token && userData) {
-        // Optionally verify token with backend
+        // Verify token with backend
         try {
           const res = await fetch(`${BASE_URL}/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
           if (!res.ok) throw new Error('Invalid token');
           const json = await res.json();
           await AsyncStorage.setItem('user', JSON.stringify(json.user));
-        } catch {}
-        const user = JSON.parse(userData);
-        setAuthState({
-          isAuthenticated: true,
-          isLoading: false,
-          token,
-          user,
-        });
+          const user = json.user;
+          setAuthState({
+            isAuthenticated: true,
+            isLoading: false,
+            token,
+            user,
+          });
+        } catch (err) {
+          // Token is invalid, clear storage and set unauthenticated
+          await AsyncStorage.removeItem('user');
+          await AsyncStorage.removeItem('token');
+          setAuthState({
+            isAuthenticated: false,
+            isLoading: false,
+            token: null,
+            user: null,
+          });
+        }
       } else {
         setAuthState({
           isAuthenticated: false,

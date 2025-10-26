@@ -85,7 +85,7 @@ export default function ProfileScreen() {
           </View>
           <View style={styles.userInfoItem}>
             <Text style={styles.userInfoLabel}>User ID</Text>
-            <Text style={styles.userInfoValue}>#{authState.user?.id || "N/A"}</Text>
+            <Text style={styles.userInfoValue}>{authState.user?.newId || "N/A"}</Text>
           </View>
         </View>
       </View>

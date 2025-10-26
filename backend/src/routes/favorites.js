@@ -28,9 +28,8 @@ const authenticateToken = async (req, res, next) => {
       return res.status(404).json({ error: 'User not found' });
     }
     
-    // Use the newId if available, otherwise fallback to id, and convert to string for UserFavorites
-    const userId = user.newId || user.id;
-    req.user = { id: userId.toString() };
+    // Store both integer id and alphanumeric newId (for UserFavorites table which uses STRING userId)
+    req.user = { id: (user.newId || user.id).toString(), newId: user.newId || user.id.toString() };
     next();
   } catch (err) {
     return res.status(403).json({ error: 'Invalid or expired token' });

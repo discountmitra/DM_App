@@ -29,10 +29,10 @@ const authenticateToken = async (req, res, next) => {
       });
     }
 
-    // Add user info to request - use newId if available
-    const userId = user.newId || user.id;
+    // Add user info to request - store both integer id and alphanumeric newId
     req.user = {
-      id: userId,
+      id: user.id, // Integer primary key for database operations
+      newId: user.newId, // Alphanumeric ID for display
       phone: user.phone,
       isVip: user.isVip
     };

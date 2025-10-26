@@ -28,9 +28,11 @@ const authenticateToken = async (req, res, next) => {
       return res.status(404).json({ error: 'User not found' });
     }
     
-    // Use the newId if available, otherwise fallback to id
-    const userId = user.newId || user.id;
-    req.user = { id: userId };
+    // Store integer id (for database operations) and newId (for display)
+    req.user = { 
+      id: user.id, // Integer ID for database operations (booking_data table uses INTEGER userId)
+      newId: user.newId 
+    };
     next();
   } catch (err) {
     return res.status(403).json({ error: 'Invalid or expired token' });
@@ -57,7 +59,7 @@ router.post('/create', authenticateToken, async (req, res) => {
       });
     }
 
-    // Get user details
+    // Get user details using integer ID
     const user = await User.findByPk(req.user.id);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
@@ -107,6 +109,7 @@ router.post('/create', authenticateToken, async (req, res) => {
 // Get user's bookings
 router.get('/my-bookings', authenticateToken, async (req, res) => {
   try {
+    // Use integer ID for database operations
     const bookings = await BookingData.findAll({
       where: { userId: req.user.id },
       order: [['bookingDate', 'DESC']]
