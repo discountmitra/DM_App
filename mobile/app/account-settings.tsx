@@ -44,7 +44,10 @@ export default function AccountSettingsScreen() {
 
       {/* App Information */}
       <View style={styles.appInfoContainer}>
-        <Image source={logoImage} style={styles.logo} />
+        <Image 
+          source={{ uri: "https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/assets/logo.png" }} 
+          style={styles.logo} 
+        />
         <Text style={styles.appVersion}>Discount Mithra v2.1.0</Text>
         <View style={styles.legalLinks}>
           <TouchableOpacity>
