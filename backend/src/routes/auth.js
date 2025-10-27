@@ -86,17 +86,27 @@ router.post('/otp/request', async (req, res) => {
     const expiresAt = new Date(Date.now() + ttlMs);
     await Otp.create({ phone, code, expiresAt });
 
-    // For now, just log the OTP instead of sending via Twilio
-    // (since Twilio requires pro trial for unverified numbers)
-    console.log(`OTP for ${phone}: ${code}`);
+    // Send via Twilio
+    const sid = process.env.TWILIO_ACCOUNT_SID;
+    const auth = process.env.TWILIO_AUTH_TOKEN;
+    const from = process.env.TWILIO_PHONE_NUMBER;
     
-    // TODO: Uncomment when Twilio is configured for production
-    // const sid = process.env.TWILIO_ACCOUNT_SID;
-    // const auth = process.env.TWILIO_AUTH_TOKEN;
-    // const from = process.env.TWILIO_PHONE_NUMBER;
-    // if (!sid || !auth || !from) return res.status(500).json({ error: 'Twilio not configured' });
-    // const twilio = require('twilio')(sid, auth);
-    // await twilio.messages.create({ from, to: phone, body: `Your DiscountMitra code is ${code}` });
+    if (sid && auth && from) {
+      try {
+        const twilio = require('twilio')(sid, auth);
+        await twilio.messages.create({ 
+          from, 
+          to: phone, 
+          body: `Your DiscountMitra code is ${code}` 
+        });
+        console.log(`SMS sent to ${phone}: ${code}`);
+      } catch (twilioError) {
+        console.error('Twilio SMS failed:', twilioError.message);
+        console.log(`OTP for ${phone}: ${code} (SMS failed, using console log)`);
+      }
+    } else {
+      console.log(`OTP for ${phone}: ${code} (Twilio not configured)`);
+    }
 
     res.json({ ok: true, message: 'OTP sent successfully' });
   } catch (e) {
@@ -125,16 +135,27 @@ router.post('/otp/request-registration', async (req, res) => {
     const expiresAt = new Date(Date.now() + ttlMs);
     await Otp.create({ phone, code, expiresAt });
 
-    // For now, just log the OTP instead of sending via Twilio
-    console.log(`Registration OTP for ${phone}: ${code}`);
+    // Send via Twilio
+    const sid = process.env.TWILIO_ACCOUNT_SID;
+    const auth = process.env.TWILIO_AUTH_TOKEN;
+    const from = process.env.TWILIO_PHONE_NUMBER;
     
-    // TODO: Uncomment when Twilio is configured for production
-    // const sid = process.env.TWILIO_ACCOUNT_SID;
-    // const auth = process.env.TWILIO_AUTH_TOKEN;
-    // const from = process.env.TWILIO_PHONE_NUMBER;
-    // if (!sid || !auth || !from) return res.status(500).json({ error: 'Twilio not configured' });
-    // const twilio = require('twilio')(sid, auth);
-    // await twilio.messages.create({ from, to: phone, body: `Your DiscountMitra registration code is ${code}` });
+    if (sid && auth && from) {
+      try {
+        const twilio = require('twilio')(sid, auth);
+        await twilio.messages.create({ 
+          from, 
+          to: phone, 
+          body: `Your DiscountMitra registration code is ${code}` 
+        });
+        console.log(`Registration SMS sent to ${phone}: ${code}`);
+      } catch (twilioError) {
+        console.error('Twilio SMS failed:', twilioError.message);
+        console.log(`Registration OTP for ${phone}: ${code} (SMS failed, using console log)`);
+      }
+    } else {
+      console.log(`Registration OTP for ${phone}: ${code} (Twilio not configured)`);
+    }
 
     res.json({ ok: true, message: 'OTP sent successfully' });
   } catch (e) {
