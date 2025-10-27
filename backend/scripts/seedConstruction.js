@@ -1,3 +1,4 @@
+require('dotenv').config();
 require('ts-node').register({
   transpileOnly: true,
   compilerOptions: { module: 'CommonJS', moduleResolution: 'Node', esModuleInterop: true },

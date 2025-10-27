@@ -1,3 +1,4 @@
+require('dotenv').config();
 const { sequelize } = require('../src/db');
 const ShoppingItem = require('../src/models/ShoppingItem');
 
@@ -61,3 +62,4 @@ async function seedShopping() {
 }
 
 seedShopping();
+

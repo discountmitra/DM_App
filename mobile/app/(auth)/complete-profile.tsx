@@ -9,7 +9,7 @@ import { useAuth } from "../../contexts/AuthContext";
 export default function CompleteProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { register, requestOtp } = useAuth();
+  const { register, requestOtpForRegistration } = useAuth();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -77,8 +77,8 @@ export default function CompleteProfileScreen() {
       // First, register the user
       await register(fullName, `+91${phoneNumber}`, email);
       
-      // Then request OTP for verification
-      await requestOtp(`+91${phoneNumber}`);
+      // Then request OTP for verification (using registration endpoint)
+      await requestOtpForRegistration(`+91${phoneNumber}`);
       
       // Navigate to verify phone screen
       router.push({ pathname: "/verify-phone", params: { phone: `+91${phoneNumber}` } });
@@ -171,13 +171,6 @@ export default function CompleteProfileScreen() {
           {phoneError ? <Text style={styles.errorText}>{phoneError}</Text> : null}
         </View>
 
-
-        {/* Registration Error Display */}
-        {registrationError ? (
-          <View style={styles.errorContainer}>
-            <Text style={styles.registrationErrorText}>{registrationError}</Text>
-          </View>
-        ) : null}
       </View>
 
       {/* Done Button */}

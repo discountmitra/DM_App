@@ -20,6 +20,7 @@ type AuthContextType = {
   authState: AuthState;
   register: (name: string, phone: string, email?: string) => Promise<void>;
   requestOtp: (phone: string) => Promise<void>;
+  requestOtpForRegistration: (phone: string) => Promise<void>;
   verifyOtp: (phone: string, code: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUserData: () => Promise<void>;
@@ -114,6 +115,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));
+      // Pass the specific error message from backend
+      throw new Error(errorData.error || 'Failed to request OTP');
+    }
+  };
+
+  const requestOtpForRegistration = async (phone: string) => {
+    const res = await fetch(`${BASE_URL}/auth/otp/request-registration`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone })
+    });
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      // Pass the specific error message from backend
       throw new Error(errorData.error || 'Failed to request OTP');
     }
   };
@@ -162,7 +177,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ authState, register, requestOtp, verifyOtp, logout, refreshUserData }}>
+    <AuthContext.Provider value={{ authState, register, requestOtp, requestOtpForRegistration, verifyOtp, logout, refreshUserData }}>
       {children}
     </AuthContext.Provider>
   );

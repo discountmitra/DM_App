@@ -1,18 +1,6 @@
-const { Sequelize } = require('sequelize');
+require('dotenv').config();
+const { sequelize } = require('../src/db');
 const Restaurant = require('../src/models/Restaurant');
-
-// Connect to database using environment variables
-const sequelize = new Sequelize(
-  process.env.PGDATABASE  ,
-  process.env.PGUSER,
-  process.env.PGPASSWORD,
-  {
-    host: process.env.PGHOST,
-    port: process.env.PGPORT,
-    dialect: 'postgres',
-    logging: false
-  }
-);
 
 const restaurantData = [
   {
@@ -219,3 +207,4 @@ async function seedRestaurants() {
 }
 
 seedRestaurants();
+

@@ -1,3 +1,4 @@
+require('dotenv').config();
 require('ts-node/register');
 
 const { sequelize } = require('../src/db');

@@ -1,18 +1,6 @@
-const { Sequelize } = require('sequelize');
+require('dotenv').config();
+const { sequelize } = require('../src/db');
 const HomeService = require('../src/models/HomeService');
-
-// Connect to database using environment variables
-const sequelize = new Sequelize(
-  process.env.PGDATABASE,
-  process.env.PGUSER,
-  process.env.PGPASSWORD,
-  {
-    host: process.env.PGHOST,
-    port: process.env.PGPORT,
-    dialect: 'postgres',
-    logging: false
-  }
-);
 
 const homeServicesData = [
   // Repairs & Maintenance
@@ -200,3 +188,4 @@ async function seedHomeServices() {
 }
 
 seedHomeServices();
+

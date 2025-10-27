@@ -1,3 +1,4 @@
+require('dotenv').config();
 const Faq = require('../src/models/Faq');
 const { sequelize } = require('../src/db');
 
@@ -136,3 +137,4 @@ async function seedFaq() {
 }
 
 seedFaq();
+

@@ -1,3 +1,4 @@
+require('dotenv').config();
 const { sequelize } = require('../src/db');
 const Salon = require('../src/models/Salon');
 
@@ -37,5 +38,6 @@ const salons = [
     await sequelize.close();
   }
 })();
+
 
 

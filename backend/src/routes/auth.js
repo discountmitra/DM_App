@@ -66,32 +66,79 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// OTP: request (send) - works for both existing users (login) and new users (registration)
+// OTP: request (send) - only for existing users (login)
 router.post('/otp/request', async (req, res) => {
   try {
     const { phone } = req.body || {};
     if (!phone) return res.status(400).json({ error: 'phone required' });
     
-    // Allow OTP to be sent to any phone number (for both login and registration)
+    await sequelize.sync();
+    
+    // Check if user exists before sending OTP
+    const user = await User.findOne({ where: { phone } });
+    if (!user) {
+      return res.status(404).json({ error: 'Account not found. Please register first.' });
+    }
 
     // Generate 4-digit OTP and persist
     const code = String(Math.floor(1000 + Math.random() * 9000));
     const ttlMs = 5 * 60 * 1000; // 5 min
     const expiresAt = new Date(Date.now() + ttlMs);
-    await sequelize.sync();
     await Otp.create({ phone, code, expiresAt });
 
-    // Send via Twilio
-    const sid = process.env.TWILIO_ACCOUNT_SID;
-    const auth = process.env.TWILIO_AUTH_TOKEN;
-    const from = process.env.TWILIO_PHONE_NUMBER;
-    if (!sid || !auth || !from) return res.status(500).json({ error: 'Twilio not configured' });
-    const twilio = require('twilio')(sid, auth);
-    await twilio.messages.create({ from, to: phone, body: `Your DiscountMitra code is ${code}` });
+    // For now, just log the OTP instead of sending via Twilio
+    // (since Twilio requires pro trial for unverified numbers)
+    console.log(`OTP for ${phone}: ${code}`);
+    
+    // TODO: Uncomment when Twilio is configured for production
+    // const sid = process.env.TWILIO_ACCOUNT_SID;
+    // const auth = process.env.TWILIO_AUTH_TOKEN;
+    // const from = process.env.TWILIO_PHONE_NUMBER;
+    // if (!sid || !auth || !from) return res.status(500).json({ error: 'Twilio not configured' });
+    // const twilio = require('twilio')(sid, auth);
+    // await twilio.messages.create({ from, to: phone, body: `Your DiscountMitra code is ${code}` });
 
-    res.json({ ok: true });
+    res.json({ ok: true, message: 'OTP sent successfully' });
   } catch (e) {
     console.error('otp request error', e);
+    res.status(500).json({ error: 'Failed to send OTP' });
+  }
+});
+
+// OTP: request for registration (send) - for new users during registration
+router.post('/otp/request-registration', async (req, res) => {
+  try {
+    const { phone } = req.body || {};
+    if (!phone) return res.status(400).json({ error: 'phone required' });
+    
+    await sequelize.sync();
+    
+    // Check if user already exists
+    const existingUser = await User.findOne({ where: { phone } });
+    if (existingUser) {
+      return res.status(400).json({ error: 'Account already exists with this number. Please login instead.' });
+    }
+
+    // Generate 4-digit OTP and persist
+    const code = String(Math.floor(1000 + Math.random() * 9000));
+    const ttlMs = 5 * 60 * 1000; // 5 min
+    const expiresAt = new Date(Date.now() + ttlMs);
+    await Otp.create({ phone, code, expiresAt });
+
+    // For now, just log the OTP instead of sending via Twilio
+    console.log(`Registration OTP for ${phone}: ${code}`);
+    
+    // TODO: Uncomment when Twilio is configured for production
+    // const sid = process.env.TWILIO_ACCOUNT_SID;
+    // const auth = process.env.TWILIO_AUTH_TOKEN;
+    // const from = process.env.TWILIO_PHONE_NUMBER;
+    // if (!sid || !auth || !from) return res.status(500).json({ error: 'Twilio not configured' });
+    // const twilio = require('twilio')(sid, auth);
+    // await twilio.messages.create({ from, to: phone, body: `Your DiscountMitra registration code is ${code}` });
+
+    res.json({ ok: true, message: 'OTP sent successfully' });
+  } catch (e) {
+    console.error('otp request registration error', e);
     res.status(500).json({ error: 'Failed to send OTP' });
   }
 });
