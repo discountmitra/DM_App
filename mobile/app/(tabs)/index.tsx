@@ -31,7 +31,6 @@ export default function HomeScreen() {
   useEffect(() => {
     const fetchAssets = async () => {
       try {
-        console.log('Fetching assets from:', `${BASE_URL}/assets`);
         const response = await fetch(`${BASE_URL}/assets`);
         
         if (!response.ok) {
@@ -40,9 +39,6 @@ export default function HomeScreen() {
         
         const data = await response.json();
         setAssets(data);
-        console.log('Assets fetched successfully:', data.length, 'items');
-        console.log('VIP info asset:', data.find(asset => asset.type === 'vip_info'));
-        console.log('VIP banner asset:', data.find(asset => asset.type === 'vip_banner'));
       } catch (error) {
         console.error('Error fetching assets:', error);
         // Set fallback assets so the app doesn't break
@@ -82,12 +78,10 @@ export default function HomeScreen() {
     if (isVip) {
       // For VIP users, show VIP info image (non-clickable)
       const vipInfoAsset = assets.find(asset => asset.type === 'vip_info');
-      console.log('VIP user - VIP info asset:', vipInfoAsset);
       return vipInfoAsset?.image || 'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/assets/vip-info.jpg';
     } else {
       // For normal users, show VIP banner (clickable)
       const vipBannerAsset = assets.find(asset => asset.type === 'vip_banner');
-      console.log('Normal user - VIP banner asset:', vipBannerAsset);
       return vipBannerAsset?.image || 'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/assets/vip-banner.png';
     }
   };

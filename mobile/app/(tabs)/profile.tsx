@@ -7,6 +7,7 @@ import { useEffect } from "react";
 import { useFavorites } from "../../contexts/FavoritesContext";
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from "../../contexts/AuthContext";
+import AuthDebugger from "../../components/AuthDebugger";
 // Logo now fetched from backend API
 
 export default function ProfileScreen() {
@@ -17,12 +18,10 @@ export default function ProfileScreen() {
   const { authState } = useAuth();
   
   const handlePrivacyPolicyPress = () => {
-    console.log('Privacy Policy clicked');
     router.navigate('/privacy-policy' as any);
   };
   
   const handleTermsOfServicePress = () => {
-    console.log('Terms of Service clicked');
     router.navigate('/terms-of-service' as any);
   };
   
@@ -199,6 +198,9 @@ export default function ProfileScreen() {
         </TouchableOpacity>
 
       </LinearGradient>
+
+      {/* Debug Component - Remove this after testing */}
+      <AuthDebugger />
 
       {/* App Information */}
       <View style={styles.appInfoContainer}>

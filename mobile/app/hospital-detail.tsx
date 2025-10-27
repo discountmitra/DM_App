@@ -190,24 +190,17 @@ export default function HospitalDetailScreen() {
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 
-    console.log('User type:', isVip ? 'VIP' : 'Normal');
-    console.log('Healthcare pricing:', healthcarePricing);
-    console.log('Is pharmacy:', hospital.category === 'Pharmacy');
-
     // For pharmacies, skip payment modal and go straight to confirmation
     if (hospital.category === 'Pharmacy') {
-      console.log('Pharmacy - showing confirmation modal directly');
       setShowConfirmModal(true);
     } 
     // Show payment modal for all non-pharmacy services (both normal and VIP)
     else {
-      console.log('Showing payment modal');
       setShowPaymentModal(true);
     }
   };
 
   const handlePaymentContinue = () => {
-    console.log('Payment continue clicked');
     setShowPaymentModal(false);
     setShowConfirmModal(true);
   };

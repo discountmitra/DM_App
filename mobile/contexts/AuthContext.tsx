@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
+import { AppState } from 'react-native';
 import { BASE_URL } from '../constants/api';
 
 type AuthState = {
@@ -39,25 +40,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     checkAuthState();
-  }, []);
+    
+    // Listen for app state changes to refresh auth when app comes to foreground
+    const handleAppStateChange = (nextAppState: string) => {
+      if (nextAppState === 'active' && authState.isAuthenticated) {
+        // App came to foreground, verify token is still valid
+        checkTokenValidity().then(isValid => {
+          if (!isValid) {
+            logout();
+          }
+        });
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    
+    return () => {
+      subscription?.remove();
+    };
+  }, [authState.isAuthenticated]);
 
   const checkAuthState = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
       const userData = await AsyncStorage.getItem('user');
+      
       if (token && userData) {
         // Verify token with backend
         try {
-          const res = await fetch(`${BASE_URL}/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
-          if (!res.ok) throw new Error('Invalid token');
+          const res = await fetch(`${BASE_URL}/auth/me`, { 
+            headers: { Authorization: `Bearer ${token}` } 
+          });
+          
+          if (!res.ok) {
+            throw new Error('Invalid token');
+          }
+          
           const json = await res.json();
           await AsyncStorage.setItem('user', JSON.stringify(json.user));
-          const user = json.user;
+          
           setAuthState({
             isAuthenticated: true,
             isLoading: false,
             token,
-            user,
+            user: json.user,
           });
         } catch (err) {
           // Token is invalid, clear storage and set unauthenticated
@@ -173,6 +199,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setAuthState(prev => ({ ...prev, user: json.user }));
     } catch (error) {
       console.error('Failed to refresh user data:', error);
+      // If refresh fails, the token might be invalid, so logout
+      await logout();
+    }
+  };
+
+  // Add a function to check token validity
+  const checkTokenValidity = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) return false;
+      
+      const res = await fetch(`${BASE_URL}/auth/me`, { 
+        headers: { Authorization: `Bearer ${token}` } 
+      });
+      return res.ok;
+    } catch (error) {
+      return false;
     }
   };
 

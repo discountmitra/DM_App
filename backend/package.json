@@ -9,7 +9,6 @@
     "build": "echo 'No build step required'",
     "seed:one": "node scripts/seedOneEvent.js",
     "seed:all": "node scripts/seedAllEvents.js",
-    "migrate:events": "node scripts/migrate_events_to_dm_app.js",
     "seed:construction": "node scripts/seedConstruction.js",
     "seed:healthcare": "node scripts/seedHealthcare.js",
     "seed:home-services": "node scripts/seedHomeServices.js",
@@ -18,13 +17,7 @@
     "seed:salons": "node scripts/seedSalons.js",
     "seed:faq": "node scripts/seedFaq.js",
     "seed:assets": "node scripts/seedAssets.js",
-    "seed:offers": "node scripts/seedOffers.js",
-    "check:expired": "node scripts/checkExpiredSubscriptions.js",
-    "migrate:user": "node scripts/migrateUserTable.js",
-    "migrate:bill-payments": "node scripts/migrateBillPayments.js",
-    "migrate:user-favorites": "node scripts/migrateUserFavorites.js",
-    "migrate:user-ids": "node scripts/migrateUserIdsV3.js",
-    "migrate:favorites-userid": "node scripts/migrateUserFavoritesUserId.js"
+    "seed:offers": "node scripts/seedOffers.js"
   },
   "author": "Discount Mitra Team",
   "license": "MIT",

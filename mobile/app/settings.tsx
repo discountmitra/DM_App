@@ -52,7 +52,6 @@ export default function SettingsScreen() {
           icon: "shield-outline",
           iconColor: "#ef4444",
           onPress: () => {
-            console.log('Privacy Policy clicked in settings');
             router.push('/privacy-policy');
           }
         },
@@ -64,7 +63,6 @@ export default function SettingsScreen() {
           icon: "document-text-outline",
           iconColor: "#6b7280",
           onPress: () => {
-            console.log('Terms of Service clicked in settings');
             router.push('/terms-of-service');
           }
         }

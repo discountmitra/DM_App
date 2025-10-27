@@ -174,7 +174,6 @@ export default function VipSubscriptionScreen() {
       });
 
       setIsLoading(false);
-      console.log('Subscription completed:', result);
       
       // Refresh user data to update VIP status
       try {
@@ -221,7 +220,6 @@ export default function VipSubscriptionScreen() {
       // Real cancellation process with user's reason
       const result = await subscriptionService.cancelSubscription(authState.token, cancellationReason.trim());
       setIsLoading(false);
-      console.log('Subscription cancelled:', result);
       
       // Refresh user data to update VIP status
       try {

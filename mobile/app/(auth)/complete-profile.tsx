@@ -85,7 +85,6 @@ export default function CompleteProfileScreen() {
     } catch (e: any) {
       // Handle specific error messages from backend
       const errorMessage = e?.message || 'Failed to register';
-      console.log('Registration error:', errorMessage);
       
       // Check for specific error messages from backend
       // The backend returns "Email already exists" or "Phone number already exists"

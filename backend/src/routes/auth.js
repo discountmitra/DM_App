@@ -26,7 +26,6 @@ router.post('/register', async (req, res) => {
     if (email) {
       const existingEmailUser = await User.findOne({ where: { email } });
       if (existingEmailUser) {
-        console.log('Email already exists:', email);
         return res.status(400).json({ error: 'Email already exists' });
       }
     }
@@ -34,7 +33,6 @@ router.post('/register', async (req, res) => {
     // Check if phone number already exists
     const existingPhoneUser = await User.findOne({ where: { phone } });
     if (existingPhoneUser) {
-      console.log('Phone number already exists:', phone);
       return res.status(400).json({ error: 'Phone number already exists' });
     }
     
@@ -99,13 +97,9 @@ router.post('/otp/request', async (req, res) => {
           to: phone, 
           body: `Your DiscountMitra code is ${code}` 
         });
-        console.log(`SMS sent to ${phone}: ${code}`);
       } catch (twilioError) {
         console.error('Twilio SMS failed:', twilioError.message);
-        console.log(`OTP for ${phone}: ${code} (SMS failed, using console log)`);
       }
-    } else {
-      console.log(`OTP for ${phone}: ${code} (Twilio not configured)`);
     }
 
     res.json({ ok: true, message: 'OTP sent successfully' });
@@ -148,13 +142,9 @@ router.post('/otp/request-registration', async (req, res) => {
           to: phone, 
           body: `Your DiscountMitra registration code is ${code}` 
         });
-        console.log(`Registration SMS sent to ${phone}: ${code}`);
       } catch (twilioError) {
         console.error('Twilio SMS failed:', twilioError.message);
-        console.log(`Registration OTP for ${phone}: ${code} (SMS failed, using console log)`);
       }
-    } else {
-      console.log(`Registration OTP for ${phone}: ${code} (Twilio not configured)`);
     }
 
     res.json({ ok: true, message: 'OTP sent successfully' });
