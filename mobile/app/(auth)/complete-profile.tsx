@@ -50,8 +50,9 @@ export default function CompleteProfileScreen() {
   };
 
   const handleDone = async () => {
-    if (!firstName.trim() || !lastName.trim() || !email.trim() || !phoneNumber.trim()) {
-      Alert.alert("Error", "Please fill in all fields");
+    // Check required fields (firstName, email, phoneNumber are required; lastName is optional)
+    if (!firstName.trim() || !email.trim() || !phoneNumber.trim()) {
+      Alert.alert("Error", "Please fill in all required fields");
       return;
     }
 
@@ -68,7 +69,10 @@ export default function CompleteProfileScreen() {
     setRegistrationError(""); // Clear any previous registration error
 
     try {
-      const fullName = `${firstName} ${lastName}`.trim();
+      // Join firstName and lastName, but only if lastName exists
+      const fullName = lastName.trim() 
+        ? `${firstName} ${lastName}`.trim() 
+        : firstName.trim();
       
       // First, register the user
       await register(fullName, `+91${phoneNumber}`, email);
@@ -81,14 +85,24 @@ export default function CompleteProfileScreen() {
     } catch (e: any) {
       // Handle specific error messages from backend
       const errorMessage = e?.message || 'Failed to register';
+      console.log('Registration error:', errorMessage);
       
-      if (errorMessage.includes('Email already exists')) {
+      // Check for specific error messages from backend
+      // The backend returns "Email already exists" or "Phone number already exists"
+      const lowerErrorMessage = errorMessage.toLowerCase();
+      
+      if (lowerErrorMessage.includes('email already exists')) {
         setEmailError('This email is already registered');
-        setRegistrationError('Please use a different email address');
-      } else if (errorMessage.includes('Phone number already exists')) {
+        setPhoneError(''); // Clear phone error
+        setRegistrationError('This email is already registered. Please use a different email address.');
+      } else if (lowerErrorMessage.includes('phone number already exists') || lowerErrorMessage.includes('user number already exists')) {
         setPhoneError('This phone number is already registered');
-        setRegistrationError('Please use a different phone number');
+        setEmailError(''); // Clear email error
+        setRegistrationError('This phone number is already registered. Please use a different phone number.');
       } else {
+        // Generic error
+        setPhoneError('');
+        setEmailError('');
         setRegistrationError(errorMessage);
       }
     }
@@ -116,7 +130,7 @@ export default function CompleteProfileScreen() {
           <View style={styles.nameField}>
             <TextInput
               style={styles.input}
-              placeholder="First name"
+              placeholder="First name *"
               value={firstName}
               onChangeText={setFirstName}
             />
@@ -135,7 +149,7 @@ export default function CompleteProfileScreen() {
         <View style={styles.fieldContainer}>
           <TextInput
             style={[styles.input, styles.fullWidthInput, emailError ? styles.inputError : null]}
-            placeholder="E-mail"
+            placeholder="E-mail *"
             value={email}
             onChangeText={handleEmailChange}
             keyboardType="email-address"
@@ -148,7 +162,7 @@ export default function CompleteProfileScreen() {
         <View style={styles.fieldContainer}>
           <TextInput
             style={[styles.input, styles.fullWidthInput, phoneError ? styles.inputError : null]}
-            placeholder="Phone number"
+            placeholder="Phone number *"
             value={phoneNumber}
             onChangeText={handlePhoneChange}
             keyboardType="phone-pad"
@@ -157,10 +171,6 @@ export default function CompleteProfileScreen() {
           {phoneError ? <Text style={styles.errorText}>{phoneError}</Text> : null}
         </View>
 
-        {/* Disclaimer */}
-        <Text style={styles.disclaimerText}>
-          We may send promotions related to our services - you can unsubscribe anytime in Communication preferences under your Profile.
-        </Text>
 
         {/* Registration Error Display */}
         {registrationError ? (

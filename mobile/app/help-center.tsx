@@ -101,7 +101,7 @@ export default function HelpCenterScreen() {
   };
 
   const handleCallSupport = () => {
-    Linking.openURL('tel:+1234567890');
+    Linking.openURL('tel:+91 82475 56370');
   };
 
   const toggleFAQ = (id: string) => {

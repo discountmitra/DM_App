@@ -92,6 +92,12 @@ export default function HomeScreen() {
     }
   };
 
+  // Get VIP info image (for normal users, shown above the banner)
+  const getVipInfoImage = () => {
+    const vipInfoAsset = assets.find(asset => asset.type === 'vip_info');
+    return vipInfoAsset?.image || 'https://rwrwadrkgnbiekvlrpza.supabase.co/storage/v1/object/public/dm-images/assets/vip-info.jpg';
+  };
+
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <LinearGradient
@@ -103,7 +109,7 @@ export default function HomeScreen() {
         {/* Greeting + Search */}
         <CustomTopBar />
 
-        {/* VIP Banner Image - Conditional based on user mode */}
+        {/* VIP Info & Banner Images - Conditional based on user mode */}
         <View style={styles.upgradeSection}>
           {loading ? (
             // Show loading placeholder
@@ -118,14 +124,21 @@ export default function HomeScreen() {
               resizeMode="cover"
             />
           ) : (
-            // Normal users see clickable VIP banner
-            <TouchableOpacity activeOpacity={0.9} onPress={() => router.push('/vip-subscription')}> 
+            // Normal users see VIP info image above the clickable VIP banner
+            <View style={styles.normalUserBannerContainer}>
               <Image
-                source={{ uri: getBannerImage() }}
-                style={styles.bannerImage}
+                source={{ uri: getVipInfoImage() }}
+                style={[styles.bannerImage, styles.vipInfoImage]}
                 resizeMode="cover"
               />
-            </TouchableOpacity>
+              <TouchableOpacity activeOpacity={0.9} onPress={() => router.push('/vip-subscription')}> 
+                <Image
+                  source={{ uri: getBannerImage() }}
+                  style={[styles.bannerImage, styles.vipBannerImage]}
+                  resizeMode="cover"
+                />
+              </TouchableOpacity>
+            </View>
           )}
         </View>
 
@@ -203,5 +216,14 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 120,
     borderRadius: 12,
+  },
+  normalUserBannerContainer: {
+    gap: 8,
+  },
+  vipInfoImage: {
+    marginBottom: 8,
+  },
+  vipBannerImage: {
+    // This will be the clickable VIP banner for normal users
   },
 });

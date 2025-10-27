@@ -22,18 +22,20 @@ router.post('/register', async (req, res) => {
 
     await sequelize.sync();
     
-    // Check if phone number already exists
-    const existingPhoneUser = await User.findOne({ where: { phone } });
-    if (existingPhoneUser) {
-      return res.status(400).json({ error: 'User number already exists' });
-    }
-    
-    // Check if email already exists (if provided)
+    // Check if email already exists first (if provided)
     if (email) {
       const existingEmailUser = await User.findOne({ where: { email } });
       if (existingEmailUser) {
+        console.log('Email already exists:', email);
         return res.status(400).json({ error: 'Email already exists' });
       }
+    }
+    
+    // Check if phone number already exists
+    const existingPhoneUser = await User.findOne({ where: { phone } });
+    if (existingPhoneUser) {
+      console.log('Phone number already exists:', phone);
+      return res.status(400).json({ error: 'Phone number already exists' });
     }
     
     // Create new user with alphanumeric ID
