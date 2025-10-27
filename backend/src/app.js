@@ -49,8 +49,8 @@ async function start() {
     await sequelize.authenticate();
     // Auto-create tables if not present
     await sequelize.sync();
-    app.listen(PORT, () => {
-      console.log(`Server listening on http://localhost:${PORT}`);
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Server listening on port ${PORT}`);
     });
   } catch (err) {
     console.error('Failed to start server:', err);
