@@ -5,6 +5,8 @@
   "main": "src/app.js",
   "scripts": {
     "start": "node src/app.js",
+    "start:prod": "NODE_ENV=production node src/app.js",
+    "build": "echo 'No build step required'",
     "seed:one": "node scripts/seedOneEvent.js",
     "seed:all": "node scripts/seedAllEvents.js",
     "migrate:events": "node scripts/migrate_events_to_dm_app.js",
