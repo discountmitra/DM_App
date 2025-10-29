@@ -33,7 +33,7 @@ export default function NetworkDebugger() {
         addTest('Basic Connectivity', 'error', `HTTP ${response.status}`, duration);
       }
     } catch (error) {
-      addTest('Basic Connectivity', 'error', `Error: ${error.message}`);
+      addTest('Basic Connectivity', 'error', `Error: ${(error as Error).message}`);
     }
 
     // Test 2: Backend health check
@@ -49,7 +49,7 @@ export default function NetworkDebugger() {
         addTest('Backend Health', 'error', `HTTP ${response.status}`, duration);
       }
     } catch (error) {
-      addTest('Backend Health', 'error', `Error: ${error.message}`);
+      addTest('Backend Health', 'error', `Error: ${(error as Error).message}`);
     }
 
     // Test 3: CORS preflight
@@ -71,7 +71,7 @@ export default function NetworkDebugger() {
         addTest('CORS Preflight', 'error', `HTTP ${response.status}`, duration);
       }
     } catch (error) {
-      addTest('CORS Preflight', 'error', `Error: ${error.message}`);
+      addTest('CORS Preflight', 'error', `Error: ${(error as Error).message}`);
     }
 
     // Test 4: API Request wrapper
@@ -82,7 +82,7 @@ export default function NetworkDebugger() {
       const duration = Date.now() - start;
       addTest('API Wrapper', 'success', 'API wrapper working correctly', duration);
     } catch (error) {
-      addTest('API Wrapper', 'error', `Error: ${error.message}`);
+      addTest('API Wrapper', 'error', `Error: ${(error as Error).message}`);
     }
 
     // Test 5: Auth endpoint (without token)
@@ -102,7 +102,7 @@ export default function NetworkDebugger() {
         addTest('Auth Endpoint', 'error', `Unexpected response: ${response.status}`, duration);
       }
     } catch (error) {
-      addTest('Auth Endpoint', 'error', `Error: ${error.message}`);
+      addTest('Auth Endpoint', 'error', `Error: ${(error as Error).message}`);
     }
 
     setIsRunning(false);

@@ -135,7 +135,7 @@ export default function ShoppingDetailScreen() {
     } catch (error) {
       console.error('Payment error:', error);
       setIsLoading(false);
-      Alert.alert('Payment Failed', error.message || 'Something went wrong. Please try again.');
+      Alert.alert('Payment Failed', (error as Error).message || 'Something went wrong. Please try again.');
     }
   };
 

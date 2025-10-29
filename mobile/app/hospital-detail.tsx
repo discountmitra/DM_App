@@ -23,7 +23,7 @@ import LikeButton from "../components/common/LikeButton";
 import { LinearGradient } from 'expo-linear-gradient';
 import OfferCards from "../components/common/OfferCards";
 import bookingService from "../services/bookingService";
-import { calculateHealthcarePricing } from "../constants/healthcarePricing";
+import { getHealthcarePricing } from "../constants/healthcarePricing";
 // FAQ data now fetched from backend API
 
 export default function HospitalDetailScreen() {
@@ -126,7 +126,7 @@ export default function HospitalDetailScreen() {
   // Calculate healthcare pricing based on the specific pricing data
   const healthcarePricing = useMemo(() => {
     if (!hospital) return { actualPrice: 0, normalPrice: 0, vipPrice: 0, displayText: "Free", originalPrice: 0, discount: 0 };
-    return calculateHealthcarePricing(hospital.name, hospital.location || "", isVip);
+    return getHealthcarePricing(hospital.name, isVip);
   }, [hospital, isVip]);
 
   if (loading) {

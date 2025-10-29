@@ -135,7 +135,7 @@ export default function DineOutScreen() {
     } catch (error) {
       console.error('Payment error:', error);
       setShowProcessing(false);
-      Alert.alert('Payment Failed', error.message || 'Something went wrong. Please try again.');
+      Alert.alert('Payment Failed', (error as Error).message || 'Something went wrong. Please try again.');
     }
   };
 
@@ -961,12 +961,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#f8fafc',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#6b7280',
-    fontWeight: '500',
   },
   errorContainer: {
     flex: 1,

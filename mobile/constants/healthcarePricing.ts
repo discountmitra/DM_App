@@ -92,7 +92,8 @@ export const healthcarePricing = {
 // Helper function to get pricing for a specific service and user type
 export const getHealthcarePricing = (serviceType: string, isVip: boolean = false) => {
   const userType = isVip ? 'vip' : 'normal';
-  return healthcarePricing[userType][serviceType] || healthcarePricing[userType].consultation;
+  const userPricing = healthcarePricing[userType] as any;
+  return userPricing[serviceType] || userPricing.consultation;
 };
 
 // Helper function to calculate discount amount

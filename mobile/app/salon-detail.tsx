@@ -34,7 +34,8 @@ export default function SalonDetailScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
   const navigation = useNavigation();
-  const { user, authState } = useAuth();
+  const { authState } = useAuth();
+  const user = authState.user;
   const [salon, setSalon] = useState<Salon | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);

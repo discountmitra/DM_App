@@ -12,11 +12,19 @@ import { useAuth } from "../../contexts/AuthContext";
 import { BASE_URL } from "../../constants/api";
 // VIP banner now fetched from backend API
 
+interface Asset {
+  id: number;
+  type: string;
+  image: string;
+  title: string;
+  description: string;
+}
+
 export default function HomeScreen() {
   const navigation = useNavigation();
   const router = useRouter();
   const { authState } = useAuth();
-  const [assets, setAssets] = useState([]);
+  const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
   
   // Determine user mode based on authentication

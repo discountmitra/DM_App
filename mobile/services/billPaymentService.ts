@@ -1,7 +1,7 @@
 import { BASE_URL } from '../constants/api';
 
 interface BillPaymentData {
-  category: 'food' | 'shopping';
+  category: string;
   merchantName: string;
   billAmount: number;
   discountPercentage: number;
