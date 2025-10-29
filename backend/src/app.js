@@ -19,7 +19,32 @@ const billPaymentsRouter = require('./routes/billPayments');
 const favoritesRouter = require('./routes/favorites');
 
 const app = express();
-app.use(cors());
+// Enhanced CORS configuration for production mobile apps
+app.use(cors({
+  origin: [
+    'https://discount-mitra-app.onrender.com',
+    'https://discountmitra.app',
+    'https://*.discountmitra.app',
+    'capacitor://localhost',
+    'ionic://localhost',
+    'http://localhost',
+    'http://localhost:3000',
+    'http://localhost:8080',
+    'http://localhost:8100'
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'Accept',
+    'Origin',
+    'Access-Control-Request-Method',
+    'Access-Control-Request-Headers'
+  ],
+  credentials: true,
+  optionsSuccessStatus: 200
+}));
 app.use(express.json());
 
 app.get('/health', (_req, res) => {

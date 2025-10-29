@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { AppState } from 'react-native';
-import { BASE_URL } from '../constants/api';
+import { BASE_URL, apiRequest } from '../constants/api';
 
 type AuthState = {
   isAuthenticated: boolean;
@@ -68,15 +68,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (token && userData) {
         // Verify token with backend
         try {
-          const res = await fetch(`${BASE_URL}/auth/me`, { 
+          const json = await apiRequest('/auth/me', { 
             headers: { Authorization: `Bearer ${token}` } 
           });
           
-          if (!res.ok) {
-            throw new Error('Invalid token');
-          }
-          
-          const json = await res.json();
           await AsyncStorage.setItem('user', JSON.stringify(json.user));
           
           setAuthState({
@@ -116,57 +111,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const register = async (name: string, phone: string, email?: string) => {
-    const res = await fetch(`${BASE_URL}/auth/register`, {
+    await apiRequest('/auth/register', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, phone, email })
     });
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.error || 'Failed to register');
-    }
     // Don't log in yet - wait for OTP verification
-    // const json = await res.json();
-    // await AsyncStorage.setItem('token', json.token);
-    // await AsyncStorage.setItem('user', JSON.stringify(json.user));
-    // setAuthState({ isAuthenticated: true, isLoading: false, token: json.token, user: json.user });
-    // router.replace('/(tabs)');
   };
 
   const requestOtp = async (phone: string) => {
-    const res = await fetch(`${BASE_URL}/auth/otp/request`, {
+    await apiRequest('/auth/otp/request', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ phone })
     });
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      // Pass the specific error message from backend
-      throw new Error(errorData.error || 'Failed to request OTP');
-    }
   };
 
   const requestOtpForRegistration = async (phone: string) => {
-    const res = await fetch(`${BASE_URL}/auth/otp/request-registration`, {
+    await apiRequest('/auth/otp/request-registration', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ phone })
     });
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      // Pass the specific error message from backend
-      throw new Error(errorData.error || 'Failed to request OTP');
-    }
   };
 
   const verifyOtp = async (phone: string, code: string) => {
-    const res = await fetch(`${BASE_URL}/auth/otp/verify`, {
+    const json = await apiRequest('/auth/otp/verify', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ phone, code })
     });
-    if (!res.ok) throw new Error('Failed to verify OTP');
-    const json = await res.json();
     await AsyncStorage.setItem('token', json.token);
     await AsyncStorage.setItem('user', JSON.stringify(json.user));
     setAuthState({ isAuthenticated: true, isLoading: false, token: json.token, user: json.user });
@@ -189,12 +159,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const token = await AsyncStorage.getItem('token');
       if (!token) return;
       
-      const res = await fetch(`${BASE_URL}/auth/me`, { 
+      const json = await apiRequest('/auth/me', { 
         headers: { Authorization: `Bearer ${token}` } 
       });
-      if (!res.ok) throw new Error('Failed to refresh user data');
       
-      const json = await res.json();
       await AsyncStorage.setItem('user', JSON.stringify(json.user));
       setAuthState(prev => ({ ...prev, user: json.user }));
     } catch (error) {
@@ -210,10 +178,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const token = await AsyncStorage.getItem('token');
       if (!token) return false;
       
-      const res = await fetch(`${BASE_URL}/auth/me`, { 
+      await apiRequest('/auth/me', { 
         headers: { Authorization: `Bearer ${token}` } 
       });
-      return res.ok;
+      return true;
     } catch (error) {
       return false;
     }

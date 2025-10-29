@@ -22,7 +22,9 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.discountmitra.app",
-      "versionCode": 1
+      "versionCode": 1,
+      "usesCleartextTraffic": false,
+      "networkSecurityConfig": "network_security_config.xml"
     },
     "web": {
       "bundler": "metro",
