@@ -1,4 +1,4 @@
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { Colors, FontSizes, Spacing } from "../../theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -14,6 +14,7 @@ export default function LoginScreen() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [phoneError, setPhoneError] = useState("");
   const [loginError, setLoginError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handlePhoneChange = (text: string) => {
     // Remove any non-digit characters
@@ -46,7 +47,10 @@ export default function LoginScreen() {
       return;
     }
 
+    if (isLoading) return; // Prevent multiple clicks
+
     setLoginError(""); // Clear any previous error
+    setIsLoading(true);
 
     try {
       await requestOtp(`+91${phoneNumber}`);
@@ -54,6 +58,8 @@ export default function LoginScreen() {
     } catch (e: any) {
       // Show the specific error message from backend
       setLoginError(e?.message || "Failed to send OTP");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -93,21 +99,25 @@ export default function LoginScreen() {
         <TouchableOpacity 
           style={[
             styles.continueButton, 
-            { opacity: phoneNumber.length === 10 ? 1 : 0.5 }
+            { opacity: (phoneNumber.length === 10 && !isLoading) ? 1 : 0.5 }
           ]} 
           onPress={handleContinue}
-          disabled={phoneNumber.length !== 10}
+          disabled={phoneNumber.length !== 10 || isLoading}
         >
-          <Text style={styles.continueButtonText}>Continue</Text>
+          {isLoading ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <Text style={styles.continueButtonText}>Continue</Text>
+          )}
         </TouchableOpacity>
-      </View>
 
-      {/* Register Link */}
-      <View style={styles.registerContainer}>
-        <Text style={styles.registerText}>Don't have an account? </Text>
-        <TouchableOpacity onPress={handleRegister}>
-          <Text style={styles.registerLink}>Register Now</Text>
-        </TouchableOpacity>
+        {/* Register Link (moved below button) */}
+        <View style={styles.registerContainer}>
+          <Text style={styles.registerText}>Don't have an account? </Text>
+          <TouchableOpacity onPress={handleRegister}>
+            <Text style={styles.registerLink}>Register Now</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -189,6 +199,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.xl,
+    marginTop: 22,
   },
   registerText: {
     fontSize: 14,

@@ -7,6 +7,9 @@ const { generateUniqueUserId } = require('../utils/userIdGenerator');
 
 const router = express.Router();
 
+// Temp in-memory storage for pending registrations (for demo; for production use Redis or similar)
+const pendingRegistrations = {};
+
 function signToken(user) {
   // Always use newId if available, otherwise fallback to id
   const userId = user.newId || user.id;
@@ -14,52 +17,33 @@ function signToken(user) {
   return jwt.sign(payload, process.env.JWT_SECRET || 'dev_secret', { expiresIn: '30d' });
 }
 
-// Registration - create user (only new phone numbers and emails)
+// Registration - collect data, don't create user yet
 router.post('/register', async (req, res) => {
   try {
     const { name, phone, email } = req.body || {};
     if (!name || !phone) return res.status(400).json({ error: 'name and phone required' });
 
     await sequelize.sync();
-    
-    // Check if email already exists first (if provided)
+
+    // Reject if email/phone already in use in DB
     if (email) {
       const existingEmailUser = await User.findOne({ where: { email } });
       if (existingEmailUser) {
         return res.status(400).json({ error: 'Email already exists' });
       }
     }
-    
-    // Check if phone number already exists
     const existingPhoneUser = await User.findOne({ where: { phone } });
     if (existingPhoneUser) {
       return res.status(400).json({ error: 'Phone number already exists' });
     }
-    
-    // Create new user with alphanumeric ID
-    const userId = await generateUniqueUserId(User);
-    const user = await User.create({ 
-      newId: userId, 
-      name, 
-      phone, 
-      email 
-    });
-    
-    // Don't return token - user needs to verify OTP first
-    res.json({ success: true, message: 'User registered successfully. Please verify OTP.' });
+
+    // Store in pending registration store
+    pendingRegistrations[phone] = { name, email };
+
+    // Do not create User here. Just acknowledge.
+    res.json({ success: true, message: 'Please verify OTP sent to your phone.' });
   } catch (e) {
     console.error('register error', e);
-    
-    // Handle specific error cases
-    if (e.name === 'SequelizeUniqueConstraintError') {
-      if (e.errors.some(err => err.path === 'email')) {
-        return res.status(400).json({ error: 'Email already exists' });
-      }
-      if (e.errors.some(err => err.path === 'phone')) {
-        return res.status(400).json({ error: 'User number already exists' });
-      }
-    }
-    
     res.status(500).json({ error: 'Failed to register' });
   }
 });
@@ -154,12 +138,28 @@ router.post('/otp/request-registration', async (req, res) => {
   }
 });
 
-// OTP: verify (works for both login and registration)
+// OTP: verify (works for both login and registration; create user if pending)
 router.post('/otp/verify', async (req, res) => {
   try {
     const { phone, code } = req.body || {};
     if (!phone || !code) return res.status(400).json({ error: 'phone and code required' });
-    const user = await User.findOne({ where: { phone } });
+    let user = await User.findOne({ where: { phone } });
+    const pending = pendingRegistrations[phone];
+
+    if (!user && pending) {
+      // Only now, after OTP pass, insert the user
+      const userId = await generateUniqueUserId(User);
+      user = await User.create({
+        newId: userId,
+        name: pending.name,
+        phone,
+        email: pending.email,
+      });
+      // Clean the pending registration from memory
+      delete pendingRegistrations[phone];
+    }
+
+    // Now, normal logic (for both new or existing user)
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     const record = await Otp.findOne({ where: { phone }, order: [['createdAt', 'DESC']] });
@@ -171,7 +171,7 @@ router.post('/otp/verify', async (req, res) => {
     record.consumedAt = new Date();
     await record.save();
     const token = signToken(user);
-    
+
     // Return user with both id and newId for frontend compatibility
     const userResponse = {
       id: user.newId || user.id, // Prioritize newId for display
@@ -183,7 +183,7 @@ router.post('/otp/verify', async (req, res) => {
       vipExpiresAt: user.vipExpiresAt,
       currentSubscriptionId: user.currentSubscriptionId
     };
-    
+
     res.json({ token, user: userResponse });
   } catch (e) {
     console.error('otp verify error', e);

@@ -3,11 +3,6 @@
     "name": "Discount Mitra",
     "slug": "discount-mitra",
     "version": "1.0.0",
-    "extra": {
-      "eas": {
-        "projectId": "9d7d15a8-b44d-48ca-8d70-fd83b25cc44b"
-      }
-    },
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "discountmitra",
@@ -41,6 +36,7 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "owner": "discountmitra123"
   }
 }

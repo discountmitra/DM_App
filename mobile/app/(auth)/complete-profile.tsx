@@ -1,4 +1,4 @@
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { Colors, FontSizes, Spacing } from "../../theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -17,6 +17,7 @@ export default function CompleteProfileScreen() {
   const [emailError, setEmailError] = useState("");
   const [phoneError, setPhoneError] = useState("");
   const [registrationError, setRegistrationError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -66,7 +67,10 @@ export default function CompleteProfileScreen() {
       return;
     }
 
+    if (isLoading) return; // Prevent multiple clicks
+
     setRegistrationError(""); // Clear any previous registration error
+    setIsLoading(true);
 
     try {
       // Join firstName and lastName, but only if lastName exists
@@ -104,6 +108,8 @@ export default function CompleteProfileScreen() {
         setEmailError('');
         setRegistrationError(errorMessage);
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -130,6 +136,7 @@ export default function CompleteProfileScreen() {
             <TextInput
               style={styles.input}
               placeholder="First name *"
+              placeholderTextColor="#111827"
               value={firstName}
               onChangeText={setFirstName}
             />
@@ -138,6 +145,7 @@ export default function CompleteProfileScreen() {
             <TextInput
               style={styles.input}
               placeholder="Last name"
+              placeholderTextColor="#111827"
               value={lastName}
               onChangeText={setLastName}
             />
@@ -149,6 +157,7 @@ export default function CompleteProfileScreen() {
           <TextInput
             style={[styles.input, styles.fullWidthInput, emailError ? styles.inputError : null]}
             placeholder="E-mail *"
+            placeholderTextColor="#111827"
             value={email}
             onChangeText={handleEmailChange}
             keyboardType="email-address"
@@ -162,6 +171,7 @@ export default function CompleteProfileScreen() {
           <TextInput
             style={[styles.input, styles.fullWidthInput, phoneError ? styles.inputError : null]}
             placeholder="Phone number *"
+            placeholderTextColor="#111827"
             value={phoneNumber}
             onChangeText={handlePhoneChange}
             keyboardType="phone-pad"
@@ -173,8 +183,19 @@ export default function CompleteProfileScreen() {
       </View>
 
       {/* Done Button */}
-      <TouchableOpacity style={styles.doneButton} onPress={handleDone}>
-        <Text style={styles.doneButtonText}>Done</Text>
+      <TouchableOpacity
+        style={[
+          styles.continueButton,
+          { opacity: isLoading ? 0.5 : 1 }
+        ]}
+        onPress={handleDone}
+        disabled={isLoading}
+      >
+        {isLoading ? (
+          <ActivityIndicator color="white" />
+        ) : (
+          <Text style={styles.continueButtonText}>Done</Text>
+        )}
       </TouchableOpacity>
     </View>
   );
@@ -270,17 +291,17 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginTop: Spacing.lg,
   },
-  doneButton: {
-    backgroundColor: "#F3F4F6",
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.xl,
+  continueButton: {
+    backgroundColor: Colors.primary,
     paddingVertical: Spacing.md,
     borderRadius: 12,
     alignItems: "center",
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.xl,
   },
-  doneButtonText: {
-    fontSize: 16,
+  continueButtonText: {
+    color: "white",
     fontWeight: "600",
-    color: "#6B7280",
+    fontSize: 16,
   },
 });

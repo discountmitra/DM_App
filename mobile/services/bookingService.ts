@@ -42,10 +42,24 @@ class BookingService {
         throw new Error('Please login to book services');
       }
 
+      // Debug: ensure payload is well-formed
+      try {
+        console.log('[Booking] Payload preview', {
+          hasOrderData: !!bookingData?.orderData,
+          keys: Object.keys(bookingData || {}),
+          serviceId: bookingData?.serviceId,
+          serviceName: bookingData?.serviceName,
+          serviceCategory: bookingData?.serviceCategory,
+          requestId: bookingData?.requestId,
+          amountPaid: bookingData?.amountPaid,
+        });
+      } catch {}
+
       const result = await apiRequest('/bookings/create', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(bookingData),
       });

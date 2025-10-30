@@ -39,17 +39,11 @@ export default function RootLayout() {
 function AppNavigator() {
   const { authState } = useAuth();
 
-  if (authState.isLoading) {
-    return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator />
-      </View>
-    );
-  }
-
+  // Always show auth stack first (which contains welcome screen)
+  // Welcome screen will auto-navigate based on auth state after showing for 6 seconds
   return (
     <Stack screenOptions={{ headerShown: false, animation: 'fade_from_bottom' }}>
-      {authState.isAuthenticated ? (
+      {authState.isAuthenticated && authState.isLoading === false ? (
         <Stack.Screen name="(tabs)" />
       ) : (
         <Stack.Screen name="(auth)" />

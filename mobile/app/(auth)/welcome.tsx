@@ -31,20 +31,18 @@ export default function WelcomeScreen() {
   const borderPulse = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Layered background reveals (approximate polygon clips with rotated views sliding in)
+    // Start animations immediately when screen loads
     Animated.stagger(200, [
       Animated.timing(bg1Progress, { toValue: 1, duration: 1500, useNativeDriver: true }),
       Animated.timing(bg2Progress, { toValue: 1, duration: 1500, useNativeDriver: true }),
       Animated.timing(bg3Progress, { toValue: 1, duration: 1500, useNativeDriver: true }),
     ]).start();
 
-    // Logo entrance (no rotation)
     Animated.parallel([
       Animated.timing(logoOpacity, { toValue: 1, duration: 1100, delay: 400, useNativeDriver: true }),
       Animated.spring(logoScale, { toValue: 1, delay: 400, tension: 60, friction: 8, useNativeDriver: true }),
     ]).start();
 
-    // Brand text, tagline, welcome sequence
     Animated.sequence([
       Animated.delay(1200),
       Animated.parallel([
@@ -57,10 +55,8 @@ export default function WelcomeScreen() {
         Animated.timing(taglineTranslateY, { toValue: 0, duration: 500, useNativeDriver: true }),
         Animated.spring(taglineScale, { toValue: 1, tension: 80, friction: 8, useNativeDriver: true }),
       ]),
-      // bottom welcome removed
     ]).start();
 
-    // Pulse border forever
     Animated.loop(
       Animated.sequence([
         Animated.timing(borderPulse, { toValue: 1, duration: 1600, useNativeDriver: false }),
@@ -68,16 +64,18 @@ export default function WelcomeScreen() {
       ])
     ).start();
 
-    // Navigate after ~6s based on auth state
+    // Navigate after ~6s based on auth state (wait for loading to complete)
     const timer = setTimeout(() => {
-      if (authState.isAuthenticated) {
-        router.replace("/(tabs)");
-      } else {
-        router.replace("/login");
+      if (!authState.isLoading) {
+        if (authState.isAuthenticated) {
+          router.replace("/(tabs)");
+        } else {
+          router.replace("/login");
+        }
       }
     }, 6000);
     return () => clearTimeout(timer);
-  }, []);
+  }, [authState.isAuthenticated, authState.isLoading]);
 
   // no logo rotation
 
