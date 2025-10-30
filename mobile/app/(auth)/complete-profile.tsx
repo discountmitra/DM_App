@@ -53,17 +53,17 @@ export default function CompleteProfileScreen() {
   const handleDone = async () => {
     // Check required fields (firstName, email, phoneNumber are required; lastName is optional)
     if (!firstName.trim() || !email.trim() || !phoneNumber.trim()) {
-      Alert.alert("Error", "Please fill in all required fields");
+      setRegistrationError("Please fill in all required fields");
       return;
     }
 
     if (emailError || phoneError) {
-      Alert.alert("Error", "Please fix the validation errors");
+      setRegistrationError("Please fix the validation errors");
       return;
     }
 
     if (phoneNumber.length !== 10) {
-      Alert.alert("Error", "Please enter a valid 10-digit phone number");
+      setRegistrationError("Please enter a valid 10-digit phone number");
       return;
     }
 
@@ -182,6 +182,12 @@ export default function CompleteProfileScreen() {
 
       </View>
 
+      {/* Inline Registration Error (gentle) */}
+      {registrationError ? (
+        <View style={styles.errorContainer}>
+          <Text style={styles.registrationErrorText}>{registrationError}</Text>
+        </View>
+      ) : null}
       {/* Done Button */}
       <TouchableOpacity
         style={[

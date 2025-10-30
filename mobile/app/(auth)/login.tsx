@@ -33,17 +33,17 @@ export default function LoginScreen() {
 
   const handleContinue = async () => {
     if (!phoneNumber.trim()) {
-      Alert.alert("Error", "Please enter your phone number");
+      setLoginError("Please enter your phone number");
       return;
     }
 
     if (phoneError) {
-      Alert.alert("Error", "Please fix the phone number");
+      setLoginError("Please fix the phone number");
       return;
     }
 
     if (phoneNumber.length !== 10) {
-      Alert.alert("Error", "Please enter a valid 10-digit phone number");
+      setLoginError("Please enter a valid 10-digit phone number");
       return;
     }
 

@@ -128,38 +128,26 @@ export default function HospitalDetailScreen() {
     if (!hospital) {
       return { actualPrice: 0, normalPrice: 0, vipPrice: 0, displayText: "Free", originalPrice: 0, discount: 0 };
     }
+    // Use the id-based custom pricing logic
+    const normal = getHealthcarePricing(hospital, false);
+    const vip = getHealthcarePricing(hospital, true);
 
-    // Map data category -> pricing service key
-    const categoryToServiceKey = (cat: string) => {
-      const c = (cat || "").toLowerCase();
-      if (c === "pharmacy") return "pharmacy";
-      if (c === "diagnostics") return "labTest";
-      if (c === "dental") return "dental";
-      if (c === "eye") return "eyeCare";
-      if (c === "ent") return "consultation";
-      if (c === "veterinary") return "consultation";
-      // "Hospitals" and all other general care map to consultation
-      return "consultation";
-    };
-
-    const serviceKey = categoryToServiceKey(String(hospital.category));
-    const normal = getHealthcarePricing(serviceKey, false) as any;
-    const vip = getHealthcarePricing(serviceKey, true) as any;
-
-    const actualPrice = Number(normal?.basePrice) || 0;
-    const normalPrice = Number(normal?.finalPrice) || 0;
-    const vipPrice = Number(vip?.finalPrice) || 0;
-
-    const selectedFinal = isVip ? vipPrice : normalPrice;
-    const displayText = selectedFinal === 0 ? "Free" : `₹${selectedFinal}`;
-
+    let actualPrice = normal?.basePrice ?? 0;
+    let normalPrice = normal?.finalPrice ?? 0;
+    let vipPrice = vip?.finalPrice ?? 0;
+    // No longer directly check a .custom property here (handled by getHealthcarePricing)
+    // For "request now" services (Sri Siddi Vinayaka Medical, Yamini Veterinary), show custom request pricing
+    let displayText = (isVip ? vipPrice : normalPrice) === 0 ? "Free" : `₹${isVip ? vipPrice : normalPrice}`;
+    if (["sri-siddi-vinayaka-medical","yamini-veterinary"].includes(String(hospital.id).toLowerCase())) {
+      actualPrice = normalPrice = 9; vipPrice = 0; displayText = isVip ? "Free" : `₹9`;
+    }
     return {
       actualPrice,
       normalPrice,
       vipPrice,
       displayText,
       originalPrice: actualPrice,
-      discount: Math.max(0, actualPrice - selectedFinal),
+      discount: Math.max(0, actualPrice - (isVip ? vipPrice : normalPrice)),
     };
   }, [hospital, isVip]);
 
