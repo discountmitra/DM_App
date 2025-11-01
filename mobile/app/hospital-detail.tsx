@@ -62,6 +62,7 @@ export default function HospitalDetailScreen() {
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
   const [faqData, setFaqData] = useState<Array<{question: string; answer: string}>>([]);
   const [faqLoading, setFaqLoading] = useState(true);
+  const [pricing, setPricing] = useState<{ basePrice: number; normalPrice: number; vipPrice: number } | null>(null);
 
   const toggleFAQ = (index: number) => {
     setExpandedFAQ(expandedFAQ === index ? null : index);
@@ -117,26 +118,62 @@ export default function HospitalDetailScreen() {
     return () => { alive = false; };
   }, []);
 
+  // Fetch pricing from database
+  useEffect(() => {
+    if (!hospitalId) return;
+    
+    let alive = true;
+    (async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/hospital-offers/pricing/${encodeURIComponent(hospitalId)}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        if (alive) setPricing(json);
+      } catch (e: any) {
+        console.error('Failed to load pricing:', e);
+        if (alive) setPricing(null);
+      }
+    })();
+    return () => { alive = false; };
+  }, [hospitalId]);
+
   const isPharmacy = hospital?.category === 'Pharmacy';
   const isYaminiVeterinary = hospital?.id === 'yamini-veterinary';
   const [petType, setPetType] = useState("");
   
   const displayImage = headerImage || (hospital?.image || "");
 
-  // Calculate healthcare pricing based on category mapped to pricing keys
+  // Calculate healthcare pricing from database or fallback to hardcoded
   const healthcarePricing = useMemo(() => {
     if (!hospital) {
       return { actualPrice: 0, normalPrice: 0, vipPrice: 0, displayText: "Free", originalPrice: 0, discount: 0 };
     }
-    // Use the id-based custom pricing logic
+
+    // First try to use pricing from database
+    if (pricing) {
+      const actualPrice = pricing.basePrice;
+      const normalPrice = pricing.normalPrice;
+      const vipPrice = pricing.vipPrice;
+      const finalPrice = isVip ? vipPrice : normalPrice;
+      const displayText = finalPrice === 0 ? "Free" : `₹${finalPrice}`;
+      
+      return {
+        actualPrice,
+        normalPrice,
+        vipPrice,
+        displayText,
+        originalPrice: actualPrice,
+        discount: Math.max(0, actualPrice - finalPrice),
+      };
+    }
+
+    // Fallback to hardcoded pricing
     const normal = getHealthcarePricing(hospital, false);
     const vip = getHealthcarePricing(hospital, true);
 
     let actualPrice = normal?.basePrice ?? 0;
     let normalPrice = normal?.finalPrice ?? 0;
     let vipPrice = vip?.finalPrice ?? 0;
-    // No longer directly check a .custom property here (handled by getHealthcarePricing)
-    // For "request now" services (Sri Siddi Vinayaka Medical, Yamini Veterinary), show custom request pricing
     let displayText = (isVip ? vipPrice : normalPrice) === 0 ? "Free" : `₹${isVip ? vipPrice : normalPrice}`;
     if (["sri-siddi-vinayaka-medical","yamini-veterinary"].includes(String(hospital.id).toLowerCase())) {
       actualPrice = normalPrice = 9; vipPrice = 0; displayText = isVip ? "Free" : `₹9`;
@@ -149,7 +186,7 @@ export default function HospitalDetailScreen() {
       originalPrice: actualPrice,
       discount: Math.max(0, actualPrice - (isVip ? vipPrice : normalPrice)),
     };
-  }, [hospital, isVip]);
+  }, [hospital, isVip, pricing]);
 
   if (loading) {
     return (
@@ -497,6 +534,7 @@ export default function HospitalDetailScreen() {
           <OfferCards 
             category="hospital"
             serviceType={hospital.category}
+            serviceId={hospital.id}
           />
         </View>
 

@@ -5,6 +5,7 @@ const { sequelize } = require('./db');
 const eventsRouter = require('./routes/events');
 const constructionRouter = require('./routes/construction');
 const healthcareRouter = require('./routes/healthcare');
+const hospitalOffersRouter = require('./routes/hospitalOffers');
 const homeServicesRouter = require('./routes/homeServices');
 const restaurantsRouter = require('./routes/restaurants');
 const salonsRouter = require('./routes/salons');
@@ -54,6 +55,7 @@ app.get('/health', (_req, res) => {
 app.use('/events', eventsRouter);
 app.use('/construction', constructionRouter);
 app.use('/healthcare', healthcareRouter);
+app.use('/hospital-offers', hospitalOffersRouter);
 app.use('/home-services', homeServicesRouter);
 app.use('/restaurants', restaurantsRouter);
 app.use('/salons', salonsRouter);

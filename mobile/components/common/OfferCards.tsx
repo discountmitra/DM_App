@@ -11,9 +11,10 @@ interface OfferCardsProps {
   vipOffers?: string[];
   category: 'hospital' | 'home-service' | 'event' | 'construction' | 'beauty' | 'food' | 'restaurant';
   serviceType?: string;
+  serviceId?: string; // For hospital offers - specific hospital ID
 }
 
-const OfferCards: React.FC<OfferCardsProps> = ({ normalOffers, vipOffers, category, serviceType }) => {
+const OfferCards: React.FC<OfferCardsProps> = ({ normalOffers, vipOffers, category, serviceType, serviceId }) => {
   const shimmerAnim = useRef(new Animated.Value(0)).current;
   const [offers, setOffers] = useState<{ normal: string[]; vip: string[] }>({ normal: [], vip: [] });
   const [loading, setLoading] = useState(true);
@@ -28,10 +29,16 @@ const OfferCards: React.FC<OfferCardsProps> = ({ normalOffers, vipOffers, catego
 
         // Always fetch from database; ignore prop fallbacks
 
-        // Fetch from database
-        const url = serviceType 
-          ? `${BASE_URL}/offers/formatted/category/${category}?serviceType=${encodeURIComponent(serviceType)}`
-          : `${BASE_URL}/offers/formatted/category/${category}`;
+        // For hospital category with serviceId, use hospital offers endpoint
+        let url: string;
+        if (category === 'hospital' && serviceId) {
+          url = `${BASE_URL}/hospital-offers/formatted/service/${encodeURIComponent(serviceId)}`;
+        } else {
+          // Fetch from regular offers endpoint
+          url = serviceType 
+            ? `${BASE_URL}/offers/formatted/category/${category}?serviceType=${encodeURIComponent(serviceType)}`
+            : `${BASE_URL}/offers/formatted/category/${category}`;
+        }
         
         const response = await fetch(url);
         
@@ -41,9 +48,15 @@ const OfferCards: React.FC<OfferCardsProps> = ({ normalOffers, vipOffers, catego
         
         const data = await response.json();
         
-        // Extract offers for the specific service type or use default
-        const serviceKey = serviceType || 'default';
-        const serviceOffers = data[serviceKey] || data.default || { normal: [], vip: [] };
+        // For hospital offers, data is already in the correct format { normal: [], vip: [] }
+        // For regular offers, extract offers for the specific service type or use default
+        let serviceOffers;
+        if (category === 'hospital' && serviceId) {
+          serviceOffers = data;
+        } else {
+          const serviceKey = serviceType || 'default';
+          serviceOffers = data[serviceKey] || data.default || { normal: [], vip: [] };
+        }
         
         setOffers(serviceOffers);
       } catch (err) {
@@ -57,7 +70,7 @@ const OfferCards: React.FC<OfferCardsProps> = ({ normalOffers, vipOffers, catego
     };
 
     fetchOffers();
-  }, [category, serviceType]);
+  }, [category, serviceType, serviceId]);
 
   useEffect(() => {
     Animated.loop(

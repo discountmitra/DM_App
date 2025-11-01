@@ -17,7 +17,8 @@
     "seed:salons": "node scripts/seedSalons.js",
     "seed:faq": "node scripts/seedFaq.js",
     "seed:assets": "node scripts/seedAssets.js",
-    "seed:offers": "node scripts/seedOffers.js"
+    "seed:offers": "node scripts/seedOffers.js",
+    "seed:hospital-offers": "node scripts/seedHospitalOffers.js"
   },
   "author": "Discount Mitra Team",
   "license": "MIT",
