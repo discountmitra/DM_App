@@ -37,6 +37,12 @@
     "experiments": {
       "typedRoutes": true
     },
-    "owner": "discountmitra123"
+    "owner": "sanji123",
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "3564bb87-e728-403e-a64d-e4d448ffcf03"
+      }
+    }
   }
 }

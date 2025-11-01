@@ -82,13 +82,12 @@ class SMSService {
     // Extract relevant order data
     const orderDetails = this.extractOrderDetails(orderData, serviceCategory);
 
-    let message = `DISCOUNT MITRA - NEW BOOKING\n`;
-    message += `Order: ${orderId}\n`;
-    message += `Service: ${serviceName}\n`;
-    message += `User: ${name} (${phone})\n`;
+    let message = `DiscountmithrA - New Booking\n`;
+    message += `ID: ${requestId}\n`;
+    message += `SVC: ${serviceName}\n`;
+    message += `User: ${name} ${phone}\n`;
     message += `Amount: Rs ${amountPaid}\n`;
     message += `Type: ${isVip ? 'VIP' : 'Normal'}\n`;
-    message += `Check admin panel for details`;
 
     return message;
   }
